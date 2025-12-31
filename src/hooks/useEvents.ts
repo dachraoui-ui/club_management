@@ -34,7 +34,10 @@ export const useCreateEvent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (eventData: Partial<Event>) => api.post('/events', eventData),
+    mutationFn: async (eventData: Partial<Event>) => {
+      const response = await api.post('/events', eventData);
+      return response.data.data as Event;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
     },
