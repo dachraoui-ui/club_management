@@ -17,13 +17,15 @@ import TeamDetails from "./pages/TeamDetails";
 import Trainings from "./pages/Trainings"
 import AddTraining from "./pages/AddTraining";
 import EditTraining from "./pages/EditTraining";
+import TrainingDetails from "./pages/TrainingDetails";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
+import AddEvent from "./pages/AddEvent";
+import EditEvent from "./pages/EditEvent";
 import Finance from "./pages/Finance";
 import Statistics from "./pages/Statistics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import TrainingDetails from "./pages/TrainingDetails";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,7 +61,9 @@ const App = () => (
             <Route path="/trainings/:id" element={<TrainingDetails />} />
             <Route path="/trainings/:id/edit" element={<EditTraining />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/events/new" element={<AddEvent />} />
             <Route path="/events/:id" element={<EventDetails />} />
+            <Route path="/events/:id/edit" element={<EditEvent />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/settings" element={<Settings />} />

@@ -34,7 +34,7 @@ export const useCreateEvent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (eventData: any) => api.post('/events', eventData),
+    mutationFn: (eventData: Partial<Event>) => api.post('/events', eventData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
     },
@@ -45,10 +45,11 @@ export const useUpdateEvent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<Event> }) =>
       api.put(`/events/${id}`, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['event', variables.id] });
     },
   });
 };
@@ -70,6 +71,19 @@ export const useRegisterForEvent = () => {
   return useMutation({
     mutationFn: ({ eventId, userId }: { eventId: string; userId?: string }) =>
       api.post(`/events/${eventId}/participants`, { userId }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['event', variables.eventId] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
+};
+
+export const useUnregisterFromEvent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, userId }: { eventId: string; userId: string }) =>
+      api.delete(`/events/${eventId}/participants/${userId}`),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['event', variables.eventId] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
