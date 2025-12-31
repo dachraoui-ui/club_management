@@ -1,0 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sport Club Management System - Bold & Energetic Design System */
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 213 41% 24%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 41% 24%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 41% 24%;
+
+    /* Navy Blue Primary */
+    --primary: 213 56% 24%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Light Blue Secondary */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 213 56% 24%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Vibrant Green Accent */
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Warning Orange */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Success Green */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 160 84% 39%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar - Navy themed */
+    --sidebar-background: 213 56% 20%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 56% 28%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 213 56% 30%;
+    --sidebar-ring: 160 84% 39%;
+
+    /* Chart colors */
+    --chart-1: 160 84% 39%;
+    --chart-2: 213 56% 24%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 340 82% 52%;
+    --chart-5: 262 83% 58%;
+  }
+
+  .dark {
+    --background: 213 56% 12%;
+    --foreground: 210 40% 96%;
+
+    --card: 213 56% 16%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 213 56% 16%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 56% 24%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 213 56% 20%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 213 56% 24%;
+    --input: 213 56% 24%;
+    --ring: 160 84% 39%;
+
+    --sidebar-background: 213 56% 10%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 56% 18%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 213 56% 18%;
+    --sidebar-ring: 160 84% 39%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary to-primary/80;
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-r from-accent to-accent/80;
+  }
+
+  .gradient-hero {
+    @apply bg-gradient-to-br from-primary via-primary/90 to-accent/20;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .btn-glow {
+    @apply relative overflow-hidden transition-all duration-300;
+  }
+
+  .btn-glow::before {
+    content: '';
+    @apply absolute inset-0 bg-white/20 translate-x-[-100%] skew-x-12 transition-transform duration-500;
+  }
+
+  .btn-glow:hover::before {
+    @apply translate-x-[100%];
+  }
+}
+
+@layer components {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  .animate-count {
+    animation: countUp 0.8s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

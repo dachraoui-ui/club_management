@@ -1,0 +1,333 @@
+### Variables
+@baseUrl = http://localhost:5000/api
+@token = YOUR_ACCESS_TOKEN_HERE
+
+### Health Check
+GET http://localhost:5000/health
+
+### ============================================
+### AUTHENTICATION
+### ============================================
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@sportclub.com",
+  "password": "admin123"
+}
+
+### Register (Admin only)
+POST {{baseUrl}}/auth/register
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "newuser@example.com",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "Athlete",
+  "phone": "+1234567890"
+}
+
+### Refresh Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Change Password
+PATCH {{baseUrl}}/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "admin123",
+  "newPassword": "newpassword123"
+}
+
+### ============================================
+### MEMBERS
+### ============================================
+
+### Get All Members
+GET {{baseUrl}}/members?page=1&limit=10&search=john&status=Active&membershipType=Premium
+Authorization: Bearer {{token}}
+
+### Get Member by ID
+GET {{baseUrl}}/members/MEMBER_ID_HERE
+Authorization: Bearer {{token}}
+
+### Create Member
+POST {{baseUrl}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "email": "member@example.com",
+  "firstName": "John",
+  "lastName": "Smith",
+  "phone": "+1234567890",
+  "address": "123 Main St",
+  "emergencyContact": "+1234567891",
+  "dateOfBirth": "1990-05-15",
+  "sports": ["Football", "Basketball"],
+  "membershipType": "Premium"
+}
+
+### Update Member
+PUT {{baseUrl}}/members/MEMBER_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Updated"
+}
+
+### Delete Member
+DELETE {{baseUrl}}/members/MEMBER_ID_HERE
+Authorization: Bearer {{token}}
+
+### ============================================
+### SUBSCRIPTIONS
+### ============================================
+
+### Get All Subscriptions
+GET {{baseUrl}}/subscriptions?page=1&limit=10&status=Active
+Authorization: Bearer {{token}}
+
+### Get Subscription by ID
+GET {{baseUrl}}/subscriptions/SUBSCRIPTION_ID_HERE
+Authorization: Bearer {{token}}
+
+### Create Subscription
+POST {{baseUrl}}/subscriptions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "type": "Premium",
+  "status": "Active",
+  "startDate": "2024-01-01T00:00:00Z",
+  "endDate": "2025-01-01T00:00:00Z",
+  "price": 150,
+  "autoRenewal": true
+}
+
+### Renew Subscription
+PATCH {{baseUrl}}/subscriptions/SUBSCRIPTION_ID_HERE/renew
+Authorization: Bearer {{token}}
+
+### ============================================
+### TEAMS
+### ============================================
+
+### Get All Teams
+GET {{baseUrl}}/teams?search=thunder
+Authorization: Bearer {{token}}
+
+### Get Team by ID
+GET {{baseUrl}}/teams/TEAM_ID_HERE
+Authorization: Bearer {{token}}
+
+### Create Team
+POST {{baseUrl}}/teams
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Thunder FC",
+  "discipline": "Football",
+  "coachId": "COACH_ID_HERE"
+}
+
+### Add Member to Team
+POST {{baseUrl}}/teams/TEAM_ID_HERE/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE"
+}
+
+### Remove Member from Team
+DELETE {{baseUrl}}/teams/TEAM_ID_HERE/members/USER_ID_HERE
+Authorization: Bearer {{token}}
+
+### ============================================
+### TRAINING SESSIONS
+### ============================================
+
+### Get All Trainings
+GET {{baseUrl}}/trainings?status=Scheduled&dateFrom=2024-02-01&dateTo=2024-02-28
+Authorization: Bearer {{token}}
+
+### Get Training by ID
+GET {{baseUrl}}/trainings/TRAINING_ID_HERE
+Authorization: Bearer {{token}}
+
+### Create Training
+POST {{baseUrl}}/trainings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Football Practice",
+  "date": "2024-02-10T00:00:00Z",
+  "time": "09:00",
+  "duration": "2 hours",
+  "discipline": "Football",
+  "coachId": "COACH_ID_HERE",
+  "location": "Main Field",
+  "maxCapacity": 25,
+  "status": "Scheduled"
+}
+
+### Mark Attendance
+POST {{baseUrl}}/trainings/TRAINING_ID_HERE/attendance
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "athleteId": "ATHLETE_ID_HERE",
+  "status": "Present"
+}
+
+### Get Attendance List
+GET {{baseUrl}}/trainings/TRAINING_ID_HERE/attendance
+Authorization: Bearer {{token}}
+
+### ============================================
+### EVENTS
+### ============================================
+
+### Get All Events
+GET {{baseUrl}}/events?type=Tournament&status=Upcoming
+Authorization: Bearer {{token}}
+
+### Get Event by ID
+GET {{baseUrl}}/events/EVENT_ID_HERE
+Authorization: Bearer {{token}}
+
+### Create Event
+POST {{baseUrl}}/events
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Annual Sports Day",
+  "description": "Our biggest event of the year",
+  "date": "2024-03-15T00:00:00Z",
+  "time": "08:00",
+  "type": "Tournament",
+  "location": "Main Sports Complex",
+  "capacity": 500,
+  "status": "Upcoming"
+}
+
+### Register for Event
+POST {{baseUrl}}/events/EVENT_ID_HERE/participants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE"
+}
+
+### Unregister from Event
+DELETE {{baseUrl}}/events/EVENT_ID_HERE/participants/USER_ID_HERE
+Authorization: Bearer {{token}}
+
+### Update Participant Result
+PATCH {{baseUrl}}/events/EVENT_ID_HERE/participants/USER_ID_HERE
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "result": "1st Place"
+}
+
+### ============================================
+### FINANCE
+### ============================================
+
+### Get All Payments
+GET {{baseUrl}}/finance/payments?page=1&limit=10&status=Paid
+Authorization: Bearer {{token}}
+
+### Record Payment
+POST {{baseUrl}}/finance/payments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "memberId": "MEMBER_ID_HERE",
+  "amount": 150,
+  "status": "Paid",
+  "type": "Membership",
+  "method": "Card"
+}
+
+### Get All Expenses
+GET {{baseUrl}}/finance/expenses?page=1&limit=10
+Authorization: Bearer {{token}}
+
+### Record Expense
+POST {{baseUrl}}/finance/expenses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Equipment purchase",
+  "amount": 5000,
+  "category": "Equipment"
+}
+
+### Get All Sponsors
+GET {{baseUrl}}/finance/sponsors?status=Active&tier=Gold
+Authorization: Bearer {{token}}
+
+### Add Sponsor
+POST {{baseUrl}}/finance/sponsors
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "SportTech Inc.",
+  "amount": 50000,
+  "startDate": "2024-01-01T00:00:00Z",
+  "endDate": "2024-12-31T00:00:00Z",
+  "status": "Active",
+  "tier": "Gold"
+}
+
+### ============================================
+### STATISTICS
+### ============================================
+
+### Dashboard Statistics
+GET {{baseUrl}}/stats/dashboard
+Authorization: Bearer {{token}}
+
+### Athlete Statistics
+GET {{baseUrl}}/stats/athletes
+Authorization: Bearer {{token}}
+
+### Financial Statistics
+GET {{baseUrl}}/stats/finance
+Authorization: Bearer {{token}}
+
+### Membership Distribution
+GET {{baseUrl}}/stats/membership
+Authorization: Bearer {{token}}
+
+### Sports Distribution
+GET {{baseUrl}}/stats/sports
+Authorization: Bearer {{token}}
+

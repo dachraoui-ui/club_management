@@ -1,0 +1,345 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  Admin
+  Manager
+  Coach
+  Staff
+  Athlete
+}
+
+enum MembershipType {
+  Basic
+  Premium
+  Elite
+}
+
+enum MembershipStatus {
+  Active
+  Inactive
+  Pending
+}
+
+enum TrainingStatus {
+  Scheduled
+  Completed
+  Cancelled
+}
+
+enum EventType {
+  Tournament
+  Workshop
+  Social
+  Competition
+}
+
+enum EventStatus {
+  Upcoming
+  Ongoing
+  Completed
+}
+
+enum PaymentStatus {
+  Paid
+  Pending
+  Overdue
+}
+
+enum PaymentType {
+  Membership
+  Training
+  Event
+  Equipment
+}
+
+enum PaymentMethod {
+  Card
+  Cash
+  BankTransfer
+}
+
+enum SponsorTier {
+  Gold
+  Silver
+  Bronze
+}
+
+enum SponsorStatus {
+  Active
+  Expired
+  Pending
+}
+
+enum AttendanceStatus {
+  Present
+  Absent
+  Late
+  Excused
+}
+
+enum SportSpeciality {
+  Football
+  Basketball
+  Tennis
+  Swimming
+  Volleyball
+  Baseball
+  Golf
+  Boxing
+  MartialArts
+  Athletics
+  Gymnastics
+  Cycling
+  Hockey
+  Rugby
+  Cricket
+  TableTennis
+  Badminton
+  Handball
+  Wrestling
+  Judo
+}
+
+model User {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String   @unique
+  password  String
+  role      UserRole @default(Athlete)
+  phone     String?
+  sportType String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  member            Member?
+  subscriptions     Subscription[]
+  teamMemberships   TeamMember[]
+  trainingAttendance TrainingAttendance[]
+  eventParticipants EventParticipant[]
+  notifications     Notification[]
+  payments          Payment[]
+  coachedTeams      Team[]           @relation("TeamCoach")
+  createdTrainings  TrainingSession[] @relation("TrainingCoach")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Member {
+  id               String           @id @default(uuid())
+  userId           String           @unique
+  address          String?
+  emergencyContact String?
+  dateOfBirth     DateTime?
+  joinDate        DateTime          @default(now())
+  sports           String[]          // Array of sports (deprecated, kept for backward compatibility)
+  speciality       SportSpeciality?  // Primary sport speciality
+  weight           Float?            // Weight in kg
+  height           Float?            // Height in cm
+  strongPoint      String?           // Strong point/strength
+  weakPoint        String?           // Weak point/area for improvement
+  teamId           String?           // Optional team assignment
+  photo            String?           // Member photo (base64 or URL)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation("MemberTeam", fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([teamId])
+}
+
+model Subscription {
+  id          String           @id @default(uuid())
+  userId      String
+  type        MembershipType
+  status      MembershipStatus @default(Pending)
+  startDate   DateTime
+  endDate     DateTime
+  autoRenewal Boolean          @default(false)
+  price       Float
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Team {
+  id        String   @id @default(uuid())
+  name      String
+  discipline String
+  coachId   String?
+  photo     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach         User?          @relation("TeamCoach", fields: [coachId], references: [id])
+  members       TeamMember[]
+  directMembers Member[]       @relation("MemberTeam")
+
+  @@index([coachId])
+}
+
+model TeamMember {
+  id       String   @id @default(uuid())
+  teamId   String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model TrainingSession {
+  id         String         @id @default(uuid())
+  title      String
+  date       DateTime
+  time       String
+  duration   String
+  discipline String
+  coachId    String
+  location   String
+  maxCapacity Int
+  status     TrainingStatus @default(Scheduled)
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  coach      User                @relation("TrainingCoach", fields: [coachId], references: [id])
+  attendance TrainingAttendance[]
+
+  @@index([coachId])
+  @@index([date])
+  @@index([status])
+}
+
+model TrainingAttendance {
+  id         String           @id @default(uuid())
+  trainingId String
+  athleteId  String
+  status     AttendanceStatus @default(Present)
+  createdAt  DateTime         @default(now())
+
+  training TrainingSession @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+  athlete  User            @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@unique([trainingId, athleteId])
+  @@index([trainingId])
+  @@index([athleteId])
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  time        String
+  type        EventType
+  location    String
+  capacity    Int
+  status      EventStatus @default(Upcoming)
+  image       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  participants EventParticipant[]
+
+  @@index([date])
+  @@index([status])
+  @@index([type])
+}
+
+model EventParticipant {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  result    String?
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  memberId  String
+  amount    Float
+  date      DateTime      @default(now())
+  status    PaymentStatus @default(Pending)
+  type      PaymentType
+  method    PaymentMethod
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  member User @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([status])
+  @@index([date])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  category    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([category])
+}
+
+model Sponsor {
+  id        String        @id @default(uuid())
+  name      String
+  logo      String?
+  amount    Float
+  startDate DateTime
+  endDate   DateTime
+  status    SponsorStatus @default(Pending)
+  tier      SponsorTier
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status])
+  @@index([tier])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
