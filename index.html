@@ -15,6 +15,92 @@
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Apply saved theme colors immediately to prevent flash -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('clubSettings');
+          if (saved) {
+            var settings = JSON.parse(saved);
+            var branding = settings.branding;
+            var appearance = settings.appearance;
+            
+            // Helper to convert hex to HSL
+            function hexToHSL(hex) {
+              hex = hex.replace('#', '');
+              var r = parseInt(hex.substring(0, 2), 16) / 255;
+              var g = parseInt(hex.substring(2, 4), 16) / 255;
+              var b = parseInt(hex.substring(4, 6), 16) / 255;
+              var max = Math.max(r, g, b);
+              var min = Math.min(r, g, b);
+              var h = 0, s = 0, l = (max + min) / 2;
+              if (max !== min) {
+                var d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                  case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                  case g: h = ((b - r) / d + 2) / 6; break;
+                  case b: h = ((r - g) / d + 4) / 6; break;
+                }
+              }
+              return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+            }
+            
+            function toHSLString(hex) {
+              var hsl = hexToHSL(hex);
+              return hsl.h + ' ' + hsl.s + '% ' + hsl.l + '%';
+            }
+            
+            var root = document.documentElement;
+            
+            // Apply theme (light/dark)
+            if (appearance && appearance.theme) {
+              if (appearance.theme === 'system') {
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) root.classList.add('dark');
+              } else if (appearance.theme === 'dark') {
+                root.classList.add('dark');
+              }
+            }
+            
+            // Apply colors
+            if (branding) {
+              if (branding.primaryColor) {
+                root.style.setProperty('--primary', toHSLString(branding.primaryColor));
+              }
+              if (branding.accentColor) {
+                root.style.setProperty('--accent', toHSLString(branding.accentColor));
+                root.style.setProperty('--success', toHSLString(branding.accentColor));
+                root.style.setProperty('--ring', toHSLString(branding.accentColor));
+                root.style.setProperty('--sidebar-primary', toHSLString(branding.accentColor));
+                root.style.setProperty('--sidebar-ring', toHSLString(branding.accentColor));
+                root.style.setProperty('--chart-1', toHSLString(branding.accentColor));
+              }
+              if (branding.sidebarColor) {
+                root.style.setProperty('--sidebar-background', toHSLString(branding.sidebarColor));
+                var sidebarHSL = hexToHSL(branding.sidebarColor);
+                root.style.setProperty('--sidebar-accent', sidebarHSL.h + ' ' + sidebarHSL.s + '% ' + Math.min(sidebarHSL.l + 8, 100) + '%');
+                root.style.setProperty('--sidebar-border', sidebarHSL.h + ' ' + sidebarHSL.s + '% ' + Math.min(sidebarHSL.l + 10, 100) + '%');
+              }
+            }
+            
+            // Update page title
+            if (branding && branding.clubName) {
+              document.title = branding.clubName + ' - Club Management';
+            }
+            
+            // Update favicon if custom logo exists
+            if (branding && branding.clubLogo) {
+              var link = document.querySelector("link[rel~='icon']");
+              if (link) link.href = branding.clubLogo;
+            }
+          }
+        } catch (e) {
+          // Silently fail - React will apply defaults
+        }
+      })();
+    </script>
   </head>
 
   <body>

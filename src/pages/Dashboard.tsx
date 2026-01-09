@@ -20,14 +20,14 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Here's what's happening with your club today.</p>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/members">
+          <Button asChild className="bg-accent hover:bg-accent/90">
+            <Link to="/members/new">
               <UserPlus className="w-4 h-4 mr-2" />
               Add Member
             </Link>
           </Button>
           <Button asChild className="bg-accent hover:bg-accent/90">
-            <Link to="/events">
+            <Link to="/events/new">
               <Plus className="w-4 h-4 mr-2" />
               Create Event
             </Link>

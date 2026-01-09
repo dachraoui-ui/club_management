@@ -211,3 +211,73 @@
     transform: translateY(0);
   }
 }
+
+/* Compact Mode - Reduces spacing and sizing throughout the app */
+.compact-mode {
+  --radius: 0.5rem;
+}
+
+.compact-mode .p-6 {
+  padding: 1rem;
+}
+
+.compact-mode .p-4 {
+  padding: 0.75rem;
+}
+
+.compact-mode .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+}
+
+.compact-mode .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
+}
+
+.compact-mode .gap-6 {
+  gap: 1rem;
+}
+
+.compact-mode .gap-4 {
+  gap: 0.75rem;
+}
+
+.compact-mode .text-2xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.compact-mode .text-xl {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+}
+
+.compact-mode .h-16 {
+  height: 3.5rem;
+}
+
+.compact-mode .py-2\.5 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* No Animations - Disables all animations and transitions */
+.no-animations,
+.no-animations * {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+.no-animations .animate-fade-in,
+.no-animations .animate-slide-up,
+.no-animations .animate-scale-in,
+.no-animations .animate-count {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}

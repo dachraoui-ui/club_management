@@ -70,7 +70,7 @@ const Trainings = () => {
           <p className="text-gray-600 mt-1">Manage and schedule training sessions</p>
         </div>
         <Link to="/trainings/new">
-          <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-accent hover:bg-accent/90">
             <Plus className="h-4 w-4 mr-2" />
             Schedule Training
           </Button>

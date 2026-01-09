@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { 
   User, Lock, Bell, Palette, Camera, Upload, Building2, 
-  RefreshCw, Check, Eye, EyeOff, Shield, Trash2, Download,
+  RefreshCw, Check, Eye, EyeOff, Shield, Trash2,
   Sun, Moon, Monitor, Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSettings } from '@/contexts/SettingsContext';
 import { toast } from 'sonner';
@@ -29,11 +29,10 @@ const colorPresets = [
 ];
 
 export default function Settings() {
-  const { settings, updateBranding, updateNotifications, updateAppearance, updateProfile, resetToDefaults } = useSettings();
+  const { settings, updateBranding, updateNotifications, updateAppearance, updateProfile } = useSettings();
   
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
   const [profileForm, setProfileForm] = useState(settings.profile);
   const [brandingForm, setBrandingForm] = useState(settings.branding);
@@ -119,24 +118,59 @@ export default function Settings() {
     });
   };
 
-  // Reset all settings
-  const handleResetAll = () => {
-    resetToDefaults();
-    setProfileForm(settings.profile);
-    setBrandingForm(settings.branding);
-    setResetDialogOpen(false);
-    toast.success('All settings reset to defaults');
+  // Reset profile to defaults
+  const handleResetProfile = () => {
+    const defaultProfile = {
+      firstName: 'Admin',
+      lastName: 'User',
+      email: 'admin@sportclub.com',
+      phone: '+1 234 567 8900',
+      bio: '',
+      avatar: null,
+    };
+    setProfileForm(defaultProfile);
+    updateProfile(defaultProfile);
+    toast.success('Profile reset to defaults');
   };
 
-  // Export settings
-  const handleExportSettings = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const link = document.createElement('a');
-    link.href = dataUri;
-    link.download = 'club-settings.json';
-    link.click();
-    toast.success('Settings exported successfully!');
+  // Reset branding to defaults
+  const handleResetBranding = () => {
+    const defaultBranding = {
+      clubName: 'SportClub',
+      clubLogo: null,
+      primaryColor: '#1e3a5f',
+      accentColor: '#10b981',
+      sidebarColor: '#172a46',
+    };
+    setBrandingForm(defaultBranding);
+    updateBranding(defaultBranding);
+    toast.success('Branding reset to defaults');
+  };
+
+  // Reset notifications to defaults
+  const handleResetNotifications = () => {
+    const defaultNotifications = {
+      email: true,
+      push: true,
+      marketing: false,
+      events: true,
+      payments: true,
+      trainings: true,
+      members: true,
+    };
+    updateNotifications(defaultNotifications);
+    toast.success('Notifications reset to defaults');
+  };
+
+  // Reset appearance to defaults
+  const handleResetAppearance = () => {
+    updateAppearance({
+      theme: 'light',
+      sidebarCollapsed: false,
+      compactMode: false,
+      animationsEnabled: true,
+    });
+    toast.success('Appearance reset to defaults');
   };
 
   return (
@@ -146,16 +180,6 @@ export default function Settings() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Settings</h2>
           <p className="text-muted-foreground">Manage your account, preferences, and club branding</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportSettings}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setResetDialogOpen(true)} className="text-destructive hover:text-destructive">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reset All
-          </Button>
         </div>
       </div>
 
@@ -278,7 +302,11 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleResetProfile}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
                 <Button onClick={handleSaveProfile} className="bg-sidebar-primary hover:bg-sidebar-primary/80">
                   <Check className="w-4 h-4 mr-2" />
                   Save Changes
@@ -352,7 +380,11 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">This appears in the sidebar and page titles</p>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={handleResetBranding}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reset
+                  </Button>
                   <Button onClick={handleSaveBranding} className="bg-sidebar-primary hover:bg-sidebar-primary/80">
                     <Check className="w-4 h-4 mr-2" />
                     Save Branding
@@ -629,24 +661,6 @@ export default function Settings() {
                 )}
               </CardContent>
             </Card>
-
-            <Card className="border-0 shadow-md border-destructive/20">
-              <CardHeader>
-                <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                <CardDescription>Irreversible actions for your account</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg border border-destructive/20 bg-destructive/5">
-                  <div>
-                    <p className="font-medium">Delete Account</p>
-                    <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
-                  </div>
-                  <Button variant="destructive" size="sm">
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
 
@@ -684,6 +698,13 @@ export default function Settings() {
                     {index < 6 && <Separator className="mt-4" />}
                   </div>
                 ))}
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button variant="outline" onClick={handleResetNotifications}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Reset to Defaults
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -765,31 +786,20 @@ export default function Settings() {
                     onCheckedChange={(checked) => updateAppearance({ animationsEnabled: checked })}
                   />
                 </div>
+
+                <Separator />
+
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={handleResetAppearance}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reset to Defaults
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
       </Tabs>
-
-      {/* Reset Dialog */}
-      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reset All Settings</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to reset all settings to their default values? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setResetDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleResetAll}>
-              Reset All
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
