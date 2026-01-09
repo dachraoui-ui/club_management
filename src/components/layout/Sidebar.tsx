@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useSettings } from '@/contexts/SettingsContext';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -34,6 +35,8 @@ const navItems = [
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useLocation();
+  const { settings } = useSettings();
+  const { clubName, clubLogo } = settings.branding;
 
   return (
     <aside
@@ -46,15 +49,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-sidebar-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center overflow-hidden">
+              {clubLogo ? (
+                <img src={clubLogo} alt={clubName} className="w-full h-full object-cover" />
+              ) : (
+                <Trophy className="w-5 h-5 text-sidebar-primary-foreground" />
+              )}
             </div>
-            <span className="font-bold text-lg text-sidebar-foreground">SportClub</span>
+            <span className="font-bold text-lg text-sidebar-foreground truncate max-w-[160px]">{clubName}</span>
           </div>
         )}
         {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center mx-auto">
-            <Trophy className="w-5 h-5 text-sidebar-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center mx-auto overflow-hidden">
+            {clubLogo ? (
+              <img src={clubLogo} alt={clubName} className="w-full h-full object-cover" />
+            ) : (
+              <Trophy className="w-5 h-5 text-sidebar-primary-foreground" />
+            )}
           </div>
         )}
       </div>
