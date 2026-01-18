@@ -23,7 +23,7 @@ export interface Member {
   email: string;
   phone?: string;
   dateOfBirth?: string;
-  membershipType?: 'Basic' | 'Premium' | 'Elite';
+  baseSalary?: number;
   status?: 'Active' | 'Inactive' | 'Pending';
   sports?: string[];
   speciality?: string;

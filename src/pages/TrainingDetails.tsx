@@ -38,8 +38,11 @@ export default function TrainingDetails() {
   const markAttendance = useMarkAttendance();
   const { data: membersData } = useMembers({ limit: 1000 });
 
+  // Get members array from membersData
+  const members = membersData?.members || [];
+
   // Get athletes for attendance marking
-  const athletes = (membersData || [])
+  const athletes = members
     .filter((member) => member.user?.role === 'Athlete')
     .map((member) => ({
       id: member.user?.id || member.id,

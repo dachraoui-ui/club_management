@@ -15,25 +15,25 @@ import { toast } from 'sonner';
 export default function Members() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [membershipFilter, setMembershipFilter] = useState<string>('all');
+  const [sportFilter, setSportFilter] = useState<string>('all');
 
   // Fetch all members without search filter for client-side filtering
   const filters = {
     status: statusFilter !== 'all' ? statusFilter : undefined,
-    membershipType: membershipFilter !== 'all' ? membershipFilter : undefined,
+    speciality: sportFilter !== 'all' ? sportFilter : undefined,
   };
 
   const { data: membersData, isLoading } = useMembers(filters);
   const deleteMember = useDeleteMember();
   const updateMemberStatus = useUpdateMemberStatus();
 
-  const members = membersData || [];
+  const members = membersData?.members || [];
   const filteredMembers = members.filter((member) => {
     const memberData = member.user || member;
     // Subscriptions are nested under user, not directly on member
     const subscription = member.user?.subscriptions?.[0] || member.subscriptions?.[0];
     const status = subscription?.status || 'Active';
-    const membershipType = subscription?.type || member.membershipType;
+    const speciality = member.speciality || '';
     
     // Client-side search filtering for instant results
     const matchesSearch = !searchQuery || 
@@ -45,7 +45,7 @@ export default function Members() {
     return (
       matchesSearch &&
       (!statusFilter || statusFilter === 'all' || status === statusFilter) &&
-      (!membershipFilter || membershipFilter === 'all' || membershipType === membershipFilter)
+      (!sportFilter || sportFilter === 'all' || speciality === sportFilter)
     );
   });
 
@@ -117,15 +117,33 @@ export default function Members() {
                   <SelectItem value="Pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={membershipFilter} onValueChange={setMembershipFilter}>
+              <Select value={sportFilter} onValueChange={setSportFilter}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Membership" />
+                  <SelectValue placeholder="Sport" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Basic">Basic</SelectItem>
-                  <SelectItem value="Premium">Premium</SelectItem>
-                  <SelectItem value="Elite">Elite</SelectItem>
+                  <SelectItem value="all">All Sports</SelectItem>
+                  <SelectItem value="Football">Football</SelectItem>
+                  <SelectItem value="Basketball">Basketball</SelectItem>
+                  <SelectItem value="Tennis">Tennis</SelectItem>
+                  <SelectItem value="Swimming">Swimming</SelectItem>
+                  <SelectItem value="Volleyball">Volleyball</SelectItem>
+                  <SelectItem value="Handball">Handball</SelectItem>
+                  <SelectItem value="Athletics">Athletics</SelectItem>
+                  <SelectItem value="Gymnastics">Gymnastics</SelectItem>
+                  <SelectItem value="Boxing">Boxing</SelectItem>
+                  <SelectItem value="Judo">Judo</SelectItem>
+                  <SelectItem value="Karate">Karate</SelectItem>
+                  <SelectItem value="Taekwondo">Taekwondo</SelectItem>
+                  <SelectItem value="Wrestling">Wrestling</SelectItem>
+                  <SelectItem value="Cycling">Cycling</SelectItem>
+                  <SelectItem value="Rugby">Rugby</SelectItem>
+                  <SelectItem value="Hockey">Hockey</SelectItem>
+                  <SelectItem value="Badminton">Badminton</SelectItem>
+                  <SelectItem value="TableTennis">Table Tennis</SelectItem>
+                  <SelectItem value="Golf">Golf</SelectItem>
+                  <SelectItem value="Fencing">Fencing</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -150,7 +168,7 @@ export default function Members() {
                   <TableHead>Member</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Membership</TableHead>
+                  <TableHead>Salary</TableHead>
                   <TableHead>Speciality</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Join Date</TableHead>
@@ -163,7 +181,7 @@ export default function Members() {
                   // Subscriptions are nested under user
                   const subscription = member.user?.subscriptions?.[0] || member.subscriptions?.[0];
                   const status = subscription?.status || 'Active';
-                  const membershipType = subscription?.type || member.membershipType || 'Basic';
+                  const baseSalary = member.baseSalary || 0;
                   const role = memberData.role || 'Athlete';
                   const speciality = member.speciality || '-';
                   const joinDate = member.joinDate || new Date().toISOString().split('T')[0];
@@ -203,11 +221,11 @@ export default function Members() {
                       </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          membershipType === 'Elite' ? 'bg-accent/10 text-accent' :
-                          membershipType === 'Premium' ? 'bg-primary/10 text-primary' :
+                          baseSalary >= 5000 ? 'bg-accent/10 text-accent' :
+                          baseSalary >= 2000 ? 'bg-primary/10 text-primary' :
                           'bg-muted text-muted-foreground'
                         }`}>
-                          {membershipType}
+                          {baseSalary > 0 ? `$${baseSalary.toLocaleString()}` : 'N/A'}
                         </span>
                       </TableCell>
                       <TableCell>

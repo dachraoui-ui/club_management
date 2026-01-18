@@ -9,6 +9,9 @@ const router = express.Router();
 
 router.use(authenticateToken);
 
+// Dashboard Stats
+router.get('/stats', financeController.getFinanceStats);
+
 // Payments
 router.get('/payments', financeController.getAllPayments);
 router.post(
@@ -24,6 +27,42 @@ router.post(
   validateRequest,
   financeController.createPayment
 );
+router.put(
+  '/payments/:id',
+  authorizeRoles('Admin', 'Manager', 'Staff'),
+  financeController.updatePayment
+);
+router.delete(
+  '/payments/:id',
+  authorizeRoles('Admin', 'Manager'),
+  financeController.deletePayment
+);
+
+// Salaries
+router.get('/salaries', financeController.getAllSalaries);
+router.post(
+  '/salaries',
+  authorizeRoles('Admin', 'Manager'),
+  [
+    body('userId').notEmpty().withMessage('User ID is required'),
+    body('amount').isFloat({ min: 0 }).withMessage('Valid amount is required'),
+    body('month').isISO8601().withMessage('Valid month is required'),
+    body('type').isIn(['Player', 'Coach', 'Staff', 'Manager']).withMessage('Invalid salary type'),
+    body('status').isIn(['Paid', 'Pending', 'Overdue']).withMessage('Invalid salary status'),
+  ],
+  validateRequest,
+  financeController.createSalary
+);
+router.put(
+  '/salaries/:id',
+  authorizeRoles('Admin', 'Manager'),
+  financeController.updateSalary
+);
+router.delete(
+  '/salaries/:id',
+  authorizeRoles('Admin', 'Manager'),
+  financeController.deleteSalary
+);
 
 // Expenses
 router.get('/expenses', financeController.getAllExpenses);
@@ -37,6 +76,16 @@ router.post(
   ],
   validateRequest,
   financeController.createExpense
+);
+router.put(
+  '/expenses/:id',
+  authorizeRoles('Admin', 'Manager'),
+  financeController.updateExpense
+);
+router.delete(
+  '/expenses/:id',
+  authorizeRoles('Admin', 'Manager'),
+  financeController.deleteExpense
 );
 
 // Sponsors
@@ -60,6 +109,12 @@ router.put(
   '/sponsors/:id',
   authorizeRoles('Admin', 'Manager'),
   financeController.updateSponsor
+);
+
+router.delete(
+  '/sponsors/:id',
+  authorizeRoles('Admin', 'Manager'),
+  financeController.deleteSponsor
 );
 
 export default router;

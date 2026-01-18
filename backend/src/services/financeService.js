@@ -1,6 +1,155 @@
 import prisma from '../config/database.js';
 
 /**
+ * Get finance dashboard stats
+ */
+export const getFinanceStats = async () => {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Get payment stats
+  const [
+    totalRevenue,
+    pendingPayments,
+    overduePayments,
+    monthlyRevenue,
+  ] = await Promise.all([
+    prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: { status: 'Paid' },
+    }),
+    prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: { status: 'Pending' },
+    }),
+    prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: { status: 'Overdue' },
+    }),
+    prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'Paid',
+        date: { gte: startOfMonth },
+      },
+    }),
+  ]);
+
+  // Get salary stats
+  const [
+    totalSalaries,
+    pendingSalaries,
+    paidSalariesThisMonth,
+  ] = await Promise.all([
+    prisma.salary.aggregate({
+      _sum: { amount: true },
+      where: { status: 'Paid' },
+    }),
+    prisma.salary.aggregate({
+      _sum: { amount: true },
+      where: { status: 'Pending' },
+    }),
+    prisma.salary.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'Paid',
+        paidDate: { gte: startOfMonth },
+      },
+    }),
+  ]);
+
+  // Get expense stats
+  const [
+    totalExpenses,
+    monthlyExpenses,
+  ] = await Promise.all([
+    prisma.expense.aggregate({
+      _sum: { amount: true },
+    }),
+    prisma.expense.aggregate({
+      _sum: { amount: true },
+      where: {
+        date: { gte: startOfMonth },
+      },
+    }),
+  ]);
+
+  // Get sponsor stats
+  const [
+    activeSponsors,
+    totalSponsorship,
+  ] = await Promise.all([
+    prisma.sponsor.count({
+      where: { status: 'Active' },
+    }),
+    prisma.sponsor.aggregate({
+      _sum: { amount: true },
+      where: { status: 'Active' },
+    }),
+  ]);
+
+  // Get monthly data for charts (last 12 months)
+  const monthlyData = [];
+  for (let i = 11; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+    
+    const [revenue, expenses, salaries] = await Promise.all([
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'Paid',
+          date: { gte: monthStart, lte: monthEnd },
+        },
+      }),
+      prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: {
+          date: { gte: monthStart, lte: monthEnd },
+        },
+      }),
+      prisma.salary.aggregate({
+        _sum: { amount: true },
+        where: {
+          status: 'Paid',
+          month: { gte: monthStart, lte: monthEnd },
+        },
+      }),
+    ]);
+
+    monthlyData.push({
+      month: monthStart.toLocaleString('default', { month: 'short' }),
+      revenue: revenue._sum.amount || 0,
+      expenses: (expenses._sum.amount || 0) + (salaries._sum.amount || 0),
+      salaries: salaries._sum.amount || 0,
+    });
+  }
+
+  return {
+    revenue: {
+      total: totalRevenue._sum.amount || 0,
+      monthly: monthlyRevenue._sum.amount || 0,
+      pending: pendingPayments._sum.amount || 0,
+      overdue: overduePayments._sum.amount || 0,
+    },
+    salaries: {
+      total: totalSalaries._sum.amount || 0,
+      pending: pendingSalaries._sum.amount || 0,
+      monthlyPaid: paidSalariesThisMonth._sum.amount || 0,
+    },
+    expenses: {
+      total: totalExpenses._sum.amount || 0,
+      monthly: monthlyExpenses._sum.amount || 0,
+    },
+    sponsorships: {
+      activeCount: activeSponsors,
+      totalAmount: totalSponsorship._sum.amount || 0,
+    },
+    monthlyData,
+  };
+};
+
+/**
  * Get all payments
  */
 export const getAllPayments = async (query) => {
@@ -87,6 +236,166 @@ export const createPayment = async (paymentData) => {
 };
 
 /**
+ * Update payment
+ */
+export const updatePayment = async (id, paymentData) => {
+  const data = {
+    ...paymentData,
+    ...(paymentData.date && { date: new Date(paymentData.date) }),
+  };
+
+  const payment = await prisma.payment.update({
+    where: { id },
+    data,
+    include: {
+      member: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  return payment;
+};
+
+/**
+ * Delete payment
+ */
+export const deletePayment = async (id) => {
+  await prisma.payment.delete({
+    where: { id },
+  });
+};
+
+/**
+ * Get all salaries
+ */
+export const getAllSalaries = async (query) => {
+  const {
+    page = 1,
+    limit = 10,
+    userId,
+    type,
+    status,
+    month,
+  } = query;
+
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const take = parseInt(limit);
+
+  const where = {
+    ...(userId && { userId }),
+    ...(type && { type }),
+    ...(status && { status }),
+    ...(month && {
+      month: {
+        gte: new Date(new Date(month).getFullYear(), new Date(month).getMonth(), 1),
+        lt: new Date(new Date(month).getFullYear(), new Date(month).getMonth() + 1, 1),
+      },
+    }),
+  };
+
+  const [salaries, total] = await Promise.all([
+    prisma.salary.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { month: 'desc' },
+    }),
+    prisma.salary.count({ where }),
+  ]);
+
+  return {
+    salaries,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+    },
+  };
+};
+
+/**
+ * Create salary
+ */
+export const createSalary = async (salaryData) => {
+  const salary = await prisma.salary.create({
+    data: {
+      ...salaryData,
+      month: new Date(salaryData.month),
+      paidDate: salaryData.status === 'Paid' ? new Date() : null,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+  });
+
+  return salary;
+};
+
+/**
+ * Update salary
+ */
+export const updateSalary = async (id, salaryData) => {
+  const data = {
+    ...salaryData,
+    ...(salaryData.month && { month: new Date(salaryData.month) }),
+    ...(salaryData.status === 'Paid' && !salaryData.paidDate && { paidDate: new Date() }),
+  };
+
+  const salary = await prisma.salary.update({
+    where: { id },
+    data,
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+        },
+      },
+    },
+  });
+
+  return salary;
+};
+
+/**
+ * Delete salary
+ */
+export const deleteSalary = async (id) => {
+  await prisma.salary.delete({
+    where: { id },
+  });
+};
+
+/**
  * Get all expenses
  */
 export const getAllExpenses = async (query) => {
@@ -149,6 +458,32 @@ export const createExpense = async (expenseData) => {
 };
 
 /**
+ * Update expense
+ */
+export const updateExpense = async (id, expenseData) => {
+  const data = {
+    ...expenseData,
+    ...(expenseData.date && { date: new Date(expenseData.date) }),
+  };
+
+  const expense = await prisma.expense.update({
+    where: { id },
+    data,
+  });
+
+  return expense;
+};
+
+/**
+ * Delete expense
+ */
+export const deleteExpense = async (id) => {
+  await prisma.expense.delete({
+    where: { id },
+  });
+};
+
+/**
  * Get all sponsors
  */
 export const getAllSponsors = async (query) => {
@@ -203,3 +538,11 @@ export const updateSponsor = async (id, sponsorData) => {
   return sponsor;
 };
 
+/**
+ * Delete sponsor
+ */
+export const deleteSponsor = async (id) => {
+  await prisma.sponsor.delete({
+    where: { id },
+  });
+};

@@ -33,7 +33,7 @@ interface MemberFormData {
   dateOfBirth: string;
   address: string;
   emergencyContact: string;
-  membershipType: 'Basic' | 'Premium' | 'Elite';
+  baseSalary?: number;
   teamId?: string;
   weight?: number;
   height?: number;
@@ -88,7 +88,7 @@ export default function MemberDetails() {
       dateOfBirth: '',
       address: '',
       emergencyContact: '',
-      membershipType: 'Basic',
+      baseSalary: undefined,
       teamId: undefined,
       weight: undefined,
       height: undefined,
@@ -110,7 +110,7 @@ export default function MemberDetails() {
         dateOfBirth: member.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : '',
         address: member.address || '',
         emergencyContact: member.emergencyContact || '',
-        membershipType: member.user?.subscriptions?.[0]?.type || member.membershipType || 'Basic',
+        baseSalary: member.baseSalary || undefined,
         teamId: member.teamId || undefined,
         weight: member.weight || undefined,
         height: member.height || undefined,
@@ -186,7 +186,7 @@ export default function MemberDetails() {
   const memberData = member.user || member;
   const subscription = member.user?.subscriptions?.[0];
   const status = subscription?.status || 'Active';
-  const membershipType = subscription?.type || member.membershipType || 'Basic';
+  const baseSalary = member.baseSalary || 0;
   const sports = member.sports || [];
 
   return (
@@ -256,11 +256,11 @@ export default function MemberDetails() {
                 <h2 className="mt-4 text-xl font-bold">{memberData.firstName} {memberData.lastName}</h2>
                 <StatusBadge status={status} className="mt-2" />
                 <span className={`mt-2 px-3 py-1 rounded-full text-xs font-medium ${
-                  membershipType === 'Elite' ? 'bg-accent/10 text-accent' :
-                  membershipType === 'Premium' ? 'bg-primary/10 text-primary' :
+                  baseSalary >= 5000 ? 'bg-accent/10 text-accent' :
+                  baseSalary >= 2000 ? 'bg-primary/10 text-primary' :
                   'bg-muted text-muted-foreground'
                 }`}>
-                  {membershipType} Member
+                  {baseSalary > 0 ? `Salary: $${baseSalary.toLocaleString()}/month` : 'Salary: N/A'}
                 </span>
 
                 <div className="w-full mt-6 space-y-3">

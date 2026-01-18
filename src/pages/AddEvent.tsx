@@ -71,12 +71,13 @@ export default function AddEvent() {
   const today = new Date().toISOString().split('T')[0];
 
   // Available members (not selected)
+  const members = useMemo(() => membersData?.members || [], [membersData?.members]);
   const availableMembers = useMemo(() => {
-    return (membersData || []).filter((member) => {
+    return members.filter((member) => {
       const memberId = getMemberId(member);
       return !selectedParticipants.includes(memberId);
     });
-  }, [membersData, selectedParticipants]);
+  }, [members, selectedParticipants]);
 
   // Filter by search
   const filteredMembers = useMemo(() => {
@@ -95,11 +96,11 @@ export default function AddEvent() {
 
   // Selected member details
   const selectedMemberDetails = useMemo(() => {
-    return (membersData || []).filter((member) => {
+    return members.filter((member) => {
       const memberId = getMemberId(member);
       return selectedParticipants.includes(memberId);
     });
-  }, [membersData, selectedParticipants]);
+  }, [members, selectedParticipants]);
 
   const addParticipant = (memberId: string) => {
     if (selectedParticipants.length >= capacity) {

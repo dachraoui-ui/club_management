@@ -7,15 +7,30 @@ interface MembersFilters {
   limit?: number;
   search?: string;
   status?: string;
-  membershipType?: string;
+  speciality?: string;
+}
+
+interface MembersResponse {
+  members: Member[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export const useMembers = (filters: MembersFilters = {}) => {
   return useQuery({
     queryKey: ['members', filters],
     queryFn: async () => {
-      const response = await api.get('/members', { params: filters });
-      return response.data.data as Member[];
+      const params = { ...filters, limit: filters.limit || 100 };
+      const response = await api.get('/members', { params });
+      // API returns { data: members[], pagination }
+      return {
+        members: response.data.data as Member[],
+        pagination: response.data.pagination,
+      } as MembersResponse;
     },
   });
 };

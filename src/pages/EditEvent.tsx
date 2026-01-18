@@ -100,12 +100,13 @@ export default function EditEvent() {
   }, [event]);
 
   // Available members (not currently registered)
+  const members = useMemo(() => membersData?.members || [], [membersData?.members]);
   const availableMembers = useMemo(() => {
-    return (membersData || []).filter((member) => {
+    return members.filter((member) => {
       const memberId = getMemberId(member);
       return !currentParticipantIds.includes(memberId);
     });
-  }, [membersData, currentParticipantIds]);
+  }, [members, currentParticipantIds]);
 
   // Filter by search
   const filteredMembers = useMemo(() => {

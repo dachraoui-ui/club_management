@@ -22,7 +22,7 @@ interface MemberFormData {
   phone: string;
   role: 'Athlete' | 'Coach' | 'Staff';
   dateOfBirth: string;
-  membershipType: 'Basic' | 'Premium' | 'Elite';
+  baseSalary?: number;
   address: string;
   emergencyContact: string;
   sports: string[];
@@ -80,7 +80,7 @@ export default function AddMember() {
   const { register, handleSubmit, reset, control, formState: { errors }, watch } = useForm<MemberFormData>({
     defaultValues: {
       role: 'Athlete',
-      membershipType: 'Basic',
+      baseSalary: undefined,
     },
   });
 
@@ -139,7 +139,7 @@ export default function AddMember() {
         emergencyContact: data.emergencyContact || undefined,
         sports: data.sports || [],
         speciality: data.speciality || undefined,
-        membershipType: data.role === 'Athlete' ? data.membershipType : undefined,
+        baseSalary: data.baseSalary || undefined,
         teamId: data.teamId && data.teamId !== 'none' ? data.teamId : undefined,
         weight: data.weight || undefined,
         height: data.height || undefined,
@@ -459,31 +459,21 @@ export default function AddMember() {
                     >
                       <div className="space-y-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-foreground mb-1">Membership & Team</h3>
-                          <p className="text-sm text-muted-foreground">Membership details and team assignment</p>
+                          <h3 className="text-lg font-semibold text-foreground mb-1">Salary & Team</h3>
+                          <p className="text-sm text-muted-foreground">Salary details and team assignment</p>
                         </div>
                         <Separator />
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="membership">Membership Type *</Label>
-                            <Controller
-                              name="membershipType"
-                              control={control}
-                              rules={{ required: 'Membership type is required' }}
-                              render={({ field }) => (
-                                <Select value={field.value} onValueChange={field.onChange}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Basic">Basic</SelectItem>
-                                    <SelectItem value="Premium">Premium</SelectItem>
-                                    <SelectItem value="Elite">Elite</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
+                            <Label htmlFor="baseSalary">Base Salary ($/month)</Label>
+                            <Input
+                              id="baseSalary"
+                              type="number"
+                              min="0"
+                              step="100"
+                              placeholder="e.g., 3000"
+                              {...register('baseSalary', { valueAsNumber: true })}
                             />
-                            {errors.membershipType && <p className="text-sm text-destructive">{errors.membershipType.message}</p>}
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="team">Team</Label>

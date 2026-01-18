@@ -60,9 +60,12 @@ export default function AddTraining() {
   const { data: membersData } = useMembers({ limit: 1000 });
   const { data: teamsData } = useTeams();
 
+  // Get members array from membersData
+  const members = useMemo(() => membersData?.members || [], [membersData?.members]);
+
   // Get all coaches with their sports/disciplines
   const allCoaches = useMemo(() => {
-    return (membersData || [])
+    return members
       .filter((member) => member.user?.role === 'Coach')
       .map((member) => ({
         id: member.user?.id || member.id,
@@ -71,7 +74,7 @@ export default function AddTraining() {
         sports: member.sports || [],
         teamDiscipline: member.team?.discipline,
       }));
-  }, [membersData]);
+  }, [members]);
 
   // Get unique disciplines that have coaches (from teams)
   const availableDisciplines = useMemo(() => {
@@ -138,7 +141,7 @@ export default function AddTraining() {
   const membersInDiscipline = useMemo(() => {
     if (!selectedDiscipline) return [];
     
-    return (membersData || []).filter((member) => {
+    return members.filter((member) => {
       // Exclude coaches
       if (member.user?.role === 'Coach') return false;
       
@@ -148,7 +151,7 @@ export default function AddTraining() {
       const matchesTeam = member.team?.discipline?.toLowerCase() === selectedDiscipline.toLowerCase();
       return matchesSports || matchesTeam;
     });
-  }, [membersData, selectedDiscipline]);
+  }, [members, selectedDiscipline]);
 
   const canCreateTraining = selectedDiscipline && filteredCoaches.length > 0;
 

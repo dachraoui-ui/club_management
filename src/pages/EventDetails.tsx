@@ -96,7 +96,8 @@ export default function EventDetails() {
   const participantUserIds = event.participants?.map((p) => p.userId) || [];
   
   // Get available members (not registered) - check both user.id and member.id
-  const availableMembers = (membersData || []).filter((member) => {
+  const members = membersData?.members || [];
+  const availableMembers = members.filter((member) => {
     const memberId = member.user?.id || member.id;
     return !participantUserIds.includes(memberId);
   });
