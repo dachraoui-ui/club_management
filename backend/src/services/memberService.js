@@ -301,6 +301,45 @@ export const createMember = async (memberData) => {
       },
     });
 
+    // If baseSalary is provided, create or update salary record for current month
+    if (baseSalary && parseFloat(baseSalary) > 0) {
+      const now = new Date();
+      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      // Map role to salary type
+      const roleToSalaryType = {
+        'Athlete': 'Player',
+        'Coach': 'Coach',
+        'Staff': 'Staff',
+        'Manager': 'Manager',
+        'Admin': 'Manager',
+      };
+      
+      const salaryType = roleToSalaryType[role] || 'Player';
+      
+      // Use upsert to handle case where salary already exists
+      await tx.salary.upsert({
+        where: {
+          userId_month: {
+            userId: user.id,
+            month: currentMonth,
+          },
+        },
+        update: {
+          amount: parseFloat(baseSalary),
+          type: salaryType,
+        },
+        create: {
+          userId: user.id,
+          amount: parseFloat(baseSalary),
+          month: currentMonth,
+          type: salaryType,
+          status: 'Pending',
+          notes: 'Initial salary record created with member',
+        },
+      });
+    }
+
     return member;
   });
 

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Filter, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
+import { Plus, Filter, MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,12 +10,16 @@ import { SearchInput } from '@/components/SearchInput';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMembers, useDeleteMember, useUpdateMemberStatus } from '@/hooks/useMembers';
+import { Member } from '@/types/api';
 import { toast } from 'sonner';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function Members() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sportFilter, setSportFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch all members without search filter for client-side filtering
   const filters = {
@@ -27,27 +31,53 @@ export default function Members() {
   const deleteMember = useDeleteMember();
   const updateMemberStatus = useUpdateMemberStatus();
 
-  const members = membersData?.members || [];
-  const filteredMembers = members.filter((member) => {
-    const memberData = member.user || member;
-    // Subscriptions are nested under user, not directly on member
-    const subscription = member.user?.subscriptions?.[0] || member.subscriptions?.[0];
-    const status = subscription?.status || 'Active';
-    const speciality = member.speciality || '';
-    
-    // Client-side search filtering for instant results
-    const matchesSearch = !searchQuery || 
-      (memberData.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       memberData.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       memberData.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       memberData.phone?.includes(searchQuery));
-    
-    return (
-      matchesSearch &&
-      (!statusFilter || statusFilter === 'all' || status === statusFilter) &&
-      (!sportFilter || sportFilter === 'all' || speciality === sportFilter)
-    );
-  });
+  const members = useMemo(() => membersData?.members || [], [membersData?.members]);
+  
+  const filteredMembers = useMemo(() => {
+    return members.filter((member: Member) => {
+      const memberData = member.user || member;
+      // Subscriptions are nested under user, not directly on member
+      const subscription = member.user?.subscriptions?.[0] || member.subscriptions?.[0];
+      const status = subscription?.status || 'Active';
+      const speciality = member.speciality || '';
+      
+      // Client-side search filtering for instant results
+      const matchesSearch = !searchQuery || 
+        (memberData.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         memberData.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         memberData.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         memberData.phone?.includes(searchQuery));
+      
+      return (
+        matchesSearch &&
+        (!statusFilter || statusFilter === 'all' || status === statusFilter) &&
+        (!sportFilter || sportFilter === 'all' || speciality === sportFilter)
+      );
+    });
+  }, [members, searchQuery, statusFilter, sportFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredMembers.length / ITEMS_PER_PAGE);
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredMembers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredMembers, currentPage]);
+
+  // Reset to page 1 when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleSportFilterChange = (value: string) => {
+    setSportFilter(value);
+    setCurrentPage(1);
+  };
 
 
   const handleDelete = async (id: string) => {
@@ -56,8 +86,9 @@ export default function Members() {
     try {
       await deleteMember.mutateAsync(id);
       toast.success('Member deleted successfully!');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete member');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to delete member');
     }
   };
 
@@ -65,8 +96,9 @@ export default function Members() {
     try {
       await updateMemberStatus.mutateAsync({ id, status });
       toast.success('Member status updated successfully!');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update status');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -100,12 +132,12 @@ export default function Members() {
           <div className="flex flex-col md:flex-row gap-4">
             <SearchInput
               value={searchQuery}
-              onChange={setSearchQuery}
+              onChange={handleSearchChange}
               placeholder="Search members..."
               className="flex-1"
             />
             <div className="flex gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger className="w-[140px]">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
@@ -117,7 +149,7 @@ export default function Members() {
                   <SelectItem value="Pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={sportFilter} onValueChange={setSportFilter}>
+              <Select value={sportFilter} onValueChange={handleSportFilterChange}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Sport" />
                 </SelectTrigger>
@@ -153,8 +185,13 @@ export default function Members() {
 
       {/* Members Table */}
       <Card className="border-0 shadow-md">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Members ({filteredMembers.length})</CardTitle>
+          {totalPages > 1 && (
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {filteredMembers.length === 0 ? (
@@ -162,6 +199,7 @@ export default function Members() {
               No members found
             </div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -176,7 +214,7 @@ export default function Members() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMembers.map((member) => {
+                {paginatedMembers.map((member: Member) => {
                   const memberData = member.user || member;
                   // Subscriptions are nested under user
                   const subscription = member.user?.subscriptions?.[0] || member.subscriptions?.[0];
@@ -278,6 +316,49 @@ export default function Members() {
                 })}
               </TableBody>
             </Table>
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredMembers.length)} of {filteredMembers.length} members
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>

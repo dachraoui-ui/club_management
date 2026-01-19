@@ -18,10 +18,12 @@ export interface PaginatedResponse<T> {
 
 export interface Member {
   id: string;
+  userId?: string;
   firstName: string;
   lastName: string;
   email: string;
   phone?: string;
+  role?: string;
   dateOfBirth?: string;
   baseSalary?: number;
   status?: 'Active' | 'Inactive' | 'Pending';
@@ -48,6 +50,14 @@ export interface Member {
     email: string;
     phone?: string;
     role: string;
+    subscriptions?: Array<{
+      id: string;
+      type: string;
+      status: string;
+      startDate: string;
+      endDate: string;
+      price: number;
+    }>;
   };
   subscriptions?: Array<{
     id: string;

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, Clock, MapPin, Users, Search, Filter } from 'lucide-react';
+import { Plus, Calendar, Clock, MapPin, Users, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,20 +8,32 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTrainings } from '@/hooks/useTrainings';
 
+const ITEMS_PER_PAGE = 9;
+
 const Trainings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: trainings = [], isLoading, error } = useTrainings();
 
-  const filteredTrainings = trainings.filter((training) => {
+  const filteredTrainings = useMemo(() => trainings.filter((training) => {
     const matchesSearch =
       training.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       training.discipline.toLowerCase().includes(searchTerm.toLowerCase()) ||
       training.location.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || training.status === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+  }), [trainings, searchTerm, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTrainings.length / ITEMS_PER_PAGE);
+  const paginatedTrainings = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredTrainings.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredTrainings, currentPage]);
+
+  // Reset page when filters change - handled by filter onChange handlers
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -86,12 +98,18 @@ const Trainings = () => {
               <Input
                 placeholder="Search trainings..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-4">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(value) => {
+                setStatusFilter(value);
+                setCurrentPage(1);
+              }}>
                 <SelectTrigger className="w-[180px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Status" />
@@ -130,8 +148,9 @@ const Trainings = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTrainings.map((training) => (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {paginatedTrainings.map((training) => (
             <Link key={training.id} to={`/trainings/${training.id}`}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
                 <CardHeader className="pb-3">
@@ -171,7 +190,50 @@ const Trainings = () => {
               </Card>
             </Link>
           ))}
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredTrainings.length)} of {filteredTrainings.length} trainings
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Summary Stats */}

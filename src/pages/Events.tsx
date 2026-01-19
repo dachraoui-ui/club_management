@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Calendar, MapPin, Users, Filter } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +8,8 @@ import { SearchInput } from '@/components/SearchInput';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Progress } from '@/components/ui/progress';
 import { useEvents } from '@/hooks/useEvents';
+
+const ITEMS_PER_PAGE = 6;
 
 const eventTypeColors: Record<string, string> = {
   Tournament: 'bg-accent/10 text-accent',
@@ -19,6 +21,8 @@ const eventTypeColors: Record<string, string> = {
 export default function Events() {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [upcomingPage, setUpcomingPage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
 
   const filters = {
     type: typeFilter !== 'all' ? typeFilter : undefined,
@@ -26,16 +30,33 @@ export default function Events() {
 
   const { data: eventsData, isLoading } = useEvents(filters);
 
-  const events = eventsData || [];
-  const filteredEvents = events.filter((event) => {
+  const events = useMemo(() => eventsData || [], [eventsData]);
+  const filteredEvents = useMemo(() => events.filter((event) => {
     const matchesSearch =
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
-  });
+  }), [events, searchQuery]);
 
-  const upcomingEvents = filteredEvents.filter((e) => e.status === 'Upcoming' || e.status === 'Ongoing');
-  const completedEvents = filteredEvents.filter((e) => e.status === 'Completed');
+  const upcomingEvents = useMemo(() => filteredEvents.filter((e) => e.status === 'Upcoming' || e.status === 'Ongoing'), [filteredEvents]);
+  const completedEvents = useMemo(() => filteredEvents.filter((e) => e.status === 'Completed'), [filteredEvents]);
+
+  // Pagination for upcoming events
+  const upcomingTotalPages = Math.ceil(upcomingEvents.length / ITEMS_PER_PAGE);
+  const paginatedUpcoming = useMemo(() => {
+    const startIndex = (upcomingPage - 1) * ITEMS_PER_PAGE;
+    return upcomingEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [upcomingEvents, upcomingPage]);
+
+  // Pagination for completed events
+  const completedTotalPages = Math.ceil(completedEvents.length / ITEMS_PER_PAGE);
+  const paginatedCompleted = useMemo(() => {
+    const startIndex = (completedPage - 1) * ITEMS_PER_PAGE;
+    return completedEvents.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [completedEvents, completedPage]);
+
+  // Reset pages when filters change - use useEffect instead
+  // Note: Reset happens automatically when filteredEvents changes
 
   if (isLoading) {
     return (
@@ -65,11 +86,19 @@ export default function Events() {
       <div className="flex flex-col md:flex-row gap-4">
         <SearchInput
           value={searchQuery}
-          onChange={setSearchQuery}
+          onChange={(value) => {
+            setSearchQuery(value);
+            setUpcomingPage(1);
+            setCompletedPage(1);
+          }}
           placeholder="Search events..."
           className="flex-1 max-w-md"
         />
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
+        <Select value={typeFilter} onValueChange={(value) => {
+          setTypeFilter(value);
+          setUpcomingPage(1);
+          setCompletedPage(1);
+        }}>
           <SelectTrigger className="w-[180px]">
             <Filter className="w-4 h-4 mr-2" />
             <SelectValue placeholder="Event Type" />
@@ -110,8 +139,9 @@ export default function Events() {
               No upcoming events
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingEvents.map((event) => (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedUpcoming.map((event) => (
                 <Link key={event.id} to={`/events/${event.id}`}>
                   <Card className="border-0 shadow-md card-hover h-full">
                     <CardHeader className="pb-2">
@@ -153,7 +183,36 @@ export default function Events() {
                   </Card>
                 </Link>
               ))}
-            </div>
+              </div>
+
+              {/* Upcoming Pagination */}
+              {upcomingTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {((upcomingPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(upcomingPage * ITEMS_PER_PAGE, upcomingEvents.length)} of {upcomingEvents.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUpcomingPage(p => Math.max(1, p - 1))}
+                      disabled={upcomingPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <span className="text-sm">{upcomingPage} / {upcomingTotalPages}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUpcomingPage(p => Math.min(upcomingTotalPages, p + 1))}
+                      disabled={upcomingPage === upcomingTotalPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -163,7 +222,7 @@ export default function Events() {
         <div>
           <h3 className="text-lg font-semibold mb-4">Past Events ({completedEvents.length})</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {completedEvents.map((event) => (
+            {paginatedCompleted.map((event) => (
               <Link key={event.id} to={`/events/${event.id}`}>
                 <Card className="border-0 shadow-md opacity-75 hover:opacity-100 transition-opacity">
                   <CardHeader className="pb-2">
@@ -186,6 +245,34 @@ export default function Events() {
               </Link>
             ))}
           </div>
+
+          {/* Completed Pagination */}
+          {completedTotalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {((completedPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(completedPage * ITEMS_PER_PAGE, completedEvents.length)} of {completedEvents.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompletedPage(p => Math.max(1, p - 1))}
+                  disabled={completedPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-sm">{completedPage} / {completedTotalPages}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCompletedPage(p => Math.min(completedTotalPages, p + 1))}
+                  disabled={completedPage === completedTotalPages}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

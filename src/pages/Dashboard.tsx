@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Users, Trophy, Calendar, CalendarDays, DollarSign, TrendingUp, UserPlus, Plus, Activity, Zap, Award, Target } from 'lucide-react';
+import { Users, Trophy, Calendar, CalendarDays, DollarSign, TrendingUp, UserPlus, Plus, Zap, Award, Target } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -9,8 +9,9 @@ import { useMembers } from '@/hooks/useMembers';
 import { useTeams } from '@/hooks/useTeams';
 import { useEvents } from '@/hooks/useEvents';
 import { useTrainings } from '@/hooks/useTrainings';
-import { useDashboardStats, useFinanceStatistics, useSportsDistribution } from '@/hooks/useStatistics';
+import { useDashboardStats, useFinanceStatistics } from '@/hooks/useStatistics';
 import { useFinanceStats } from '@/hooks/useFinance';
+import { Member } from '@/types/api';
 
 // 3D Card Component with tilt effect
 function Card3D({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -42,7 +43,7 @@ function Stat3DCard({
 }: { 
   title: string; 
   value: string | number; 
-  icon: any; 
+  icon: React.ElementType; 
   trend?: { value: number; isPositive: boolean }; 
   color?: string;
   delay?: number;
@@ -160,14 +161,13 @@ export default function Dashboard() {
   const { data: trainingsData, isLoading: trainingsLoading } = useTrainings();
   const { data: dashboardStats } = useDashboardStats();
   const { data: financeStats } = useFinanceStatistics();
-  const { data: sportsDist } = useSportsDistribution();
   const { data: financeData } = useFinanceStats();
 
-  // Calculate real stats
-  const members = membersData?.members || [];
-  const teams = teamsData || [];
-  const events = eventsData || [];
-  const trainings = trainingsData || [];
+  // Calculate real stats - wrap in useMemo to prevent dependency warnings
+  const members = useMemo(() => membersData?.members || [], [membersData?.members]);
+  const teams = useMemo(() => teamsData || [], [teamsData]);
+  const events = useMemo(() => eventsData || [], [eventsData]);
+  const trainings = useMemo(() => trainingsData || [], [trainingsData]);
 
   const stats = useMemo(() => ({
     totalMembers: dashboardStats?.totalMembers || members.length,
@@ -182,8 +182,8 @@ export default function Dashboard() {
   // Calculate role distribution
   const roleDistribution = useMemo(() => {
     const roles: Record<string, number> = { Athletes: 0, Coaches: 0, Staff: 0 };
-    members.forEach((member: any) => {
-      const role = member.user?.role || 'Athlete';
+    members.forEach((member: Member) => {
+      const role = member.user?.role || member.role || 'Athlete';
       if (role === 'Athlete') roles.Athletes++;
       else if (role === 'Coach') roles.Coaches++;
       else if (role === 'Staff') roles.Staff++;
@@ -204,20 +204,6 @@ export default function Dashboard() {
     { month: 'Dec', revenue: 0, expenses: 0 },
     { month: 'Jan', revenue: 0, expenses: 0 },
   ];
-
-  // Sports distribution
-  const sportsData = useMemo(() => {
-    if (sportsDist && sportsDist.length > 0) return sportsDist;
-    
-    const sports: Record<string, number> = {};
-    members.forEach((member: any) => {
-      const memberSports = member.sports || [];
-      memberSports.forEach((sport: string) => {
-        sports[sport] = (sports[sport] || 0) + 1;
-      });
-    });
-    return Object.entries(sports).map(([sport, count]) => ({ sport, members: count })).slice(0, 6);
-  }, [sportsDist, members]);
 
   // Calculate performance metrics
   const performanceMetrics = useMemo(() => {
@@ -459,44 +445,8 @@ export default function Dashboard() {
         </Card3D>
       </div>
 
-      {/* Sports & Teams */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sports Distribution */}
-        <Card3D>
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-accent" />
-                Members by Sport
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={sportsData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis dataKey="sport" type="category" width={100} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Bar dataKey="members" fill="url(#barGradient)" radius={[0, 8, 8, 0]}>
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#10b981" />
-                        <stop offset="100%" stopColor="#3b82f6" />
-                      </linearGradient>
-                    </defs>
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Card3D>
-
+      {/* Teams */}
+      <div className="grid grid-cols-1 gap-6">
         {/* Team Size Comparison */}
         <Card3D>
           <Card className="border-0 shadow-lg">
@@ -511,9 +461,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height={250}>
                   <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={teamPerformanceData}>
                     <RadialBar
-                      minAngle={15}
                       background
-                      clockWise
                       dataKey="members"
                       cornerRadius={10}
                     />
@@ -617,7 +565,7 @@ export default function Dashboard() {
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-accent via-primary to-purple-500" />
               
               <div className="space-y-6">
-                {members.slice(0, 4).map((member: any, index: number) => (
+                {members.slice(0, 4).map((member: Member) => (
                   <div key={member.id} className="relative flex items-start gap-4 pl-10">
                     {/* Timeline dot */}
                     <div className="absolute left-2 w-4 h-4 rounded-full bg-gradient-to-br from-accent to-primary border-2 border-background shadow-lg" />

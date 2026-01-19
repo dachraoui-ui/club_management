@@ -335,11 +335,30 @@ export const getAllSalaries = async (query) => {
  * Create salary
  */
 export const createSalary = async (salaryData) => {
-  const salary = await prisma.salary.create({
-    data: {
-      ...salaryData,
-      month: new Date(salaryData.month),
-      paidDate: salaryData.status === 'Paid' ? new Date() : null,
+  const { updateMemberSalary, ...data } = salaryData;
+  const monthDate = new Date(data.month);
+  
+  // Use upsert to handle existing salary for same user/month
+  const salary = await prisma.salary.upsert({
+    where: {
+      userId_month: {
+        userId: data.userId,
+        month: monthDate,
+      },
+    },
+    update: {
+      amount: data.amount,
+      type: data.type,
+      status: data.status,
+      bonus: data.bonus || 0,
+      deductions: data.deductions || 0,
+      notes: data.notes,
+      paidDate: data.status === 'Paid' ? new Date() : null,
+    },
+    create: {
+      ...data,
+      month: monthDate,
+      paidDate: data.status === 'Paid' ? new Date() : null,
     },
     include: {
       user: {
@@ -354,6 +373,14 @@ export const createSalary = async (salaryData) => {
     },
   });
 
+  // If updateMemberSalary is true, update the member's baseSalary
+  if (updateMemberSalary && data.amount) {
+    await prisma.member.updateMany({
+      where: { userId: data.userId },
+      data: { baseSalary: parseFloat(data.amount) },
+    });
+  }
+
   return salary;
 };
 
@@ -361,10 +388,12 @@ export const createSalary = async (salaryData) => {
  * Update salary
  */
 export const updateSalary = async (id, salaryData) => {
+  const { updateMemberSalary, ...dataWithoutFlag } = salaryData;
+  
   const data = {
-    ...salaryData,
-    ...(salaryData.month && { month: new Date(salaryData.month) }),
-    ...(salaryData.status === 'Paid' && !salaryData.paidDate && { paidDate: new Date() }),
+    ...dataWithoutFlag,
+    ...(dataWithoutFlag.month && { month: new Date(dataWithoutFlag.month) }),
+    ...(dataWithoutFlag.status === 'Paid' && !dataWithoutFlag.paidDate && { paidDate: new Date() }),
   };
 
   const salary = await prisma.salary.update({
@@ -382,6 +411,14 @@ export const updateSalary = async (id, salaryData) => {
       },
     },
   });
+
+  // If updateMemberSalary is true, update the member's baseSalary
+  if (updateMemberSalary && dataWithoutFlag.amount) {
+    await prisma.member.updateMany({
+      where: { userId: salary.userId },
+      data: { baseSalary: parseFloat(dataWithoutFlag.amount) },
+    });
+  }
 
   return salary;
 };

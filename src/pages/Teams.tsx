@@ -1,23 +1,35 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Users, User } from 'lucide-react';
+import { Plus, Users, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/SearchInput';
 import { useTeams } from '@/hooks/useTeams';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
+const ITEMS_PER_PAGE = 9;
+
 export default function Teams() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: teamsData, isLoading } = useTeams();
 
-  const teams = teamsData || [];
-  const filteredTeams = teams.filter(
+  const teams = useMemo(() => teamsData || [], [teamsData]);
+  const filteredTeams = useMemo(() => teams.filter(
     (team) =>
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       team.discipline.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [teams, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE);
+  const paginatedTeams = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredTeams.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredTeams, currentPage]);
+
+  // Reset to first page when search changes - handled by the search input onChange
 
   if (isLoading) {
     return (
@@ -46,7 +58,10 @@ export default function Teams() {
       {/* Search */}
       <SearchInput
         value={searchQuery}
-        onChange={setSearchQuery}
+        onChange={(value) => {
+          setSearchQuery(value);
+          setCurrentPage(1);
+        }}
         placeholder="Search teams..."
         className="max-w-md"
       />
@@ -58,8 +73,9 @@ export default function Teams() {
           <p>No teams found</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTeams.map((team) => {
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedTeams.map((team) => {
             return (
               <Link key={team.id} to={`/teams/${team.id}`}>
                 <Card className="border-0 shadow-md card-hover cursor-pointer h-full">
@@ -104,7 +120,50 @@ export default function Teams() {
               </Link>
             );
           })}
-        </div>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredTeams.length)} of {filteredTeams.length} teams
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

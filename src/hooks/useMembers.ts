@@ -46,13 +46,33 @@ export const useMember = (id: string) => {
   });
 };
 
+export interface CreateMemberData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role?: string;
+  sportType?: string;
+  address?: string;
+  emergencyContact?: string;
+  dateOfBirth?: string;
+  speciality?: string;
+  weight?: number;
+  height?: number;
+  strongPoint?: string;
+  weakPoint?: string;
+  baseSalary?: number;
+  teamId?: string;
+}
+
 export const useCreateMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (memberData: any) => api.post('/members', memberData),
+    mutationFn: (memberData: CreateMemberData) => api.post('/members', memberData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] }); // Refresh finance for salary records
     },
   });
 };
@@ -61,11 +81,12 @@ export const useUpdateMember = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateMemberData> }) =>
       api.put(`/members/${id}`, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       queryClient.invalidateQueries({ queryKey: ['member', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['finance'] }); // Refresh finance for salary sync
     },
   });
 };

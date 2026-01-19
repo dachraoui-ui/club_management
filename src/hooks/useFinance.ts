@@ -174,12 +174,13 @@ export function useCreateSalary() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: Omit<Salary, 'id' | 'user' | 'paidDate'>) => {
+    mutationFn: async (data: Omit<Salary, 'id' | 'user' | 'paidDate'> & { updateMemberSalary?: boolean }) => {
       const response = await api.post('/finance/salaries', data);
       return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] }); // Refresh members to get updated baseSalary
     },
   });
 }
@@ -188,12 +189,13 @@ export function useUpdateSalary() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, ...data }: Partial<Salary> & { id: string }) => {
+    mutationFn: async ({ id, ...data }: Partial<Salary> & { id: string; updateMemberSalary?: boolean }) => {
       const response = await api.put(`/finance/salaries/${id}`, data);
       return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
+      queryClient.invalidateQueries({ queryKey: ['members'] }); // Refresh members to get updated baseSalary
     },
   });
 }

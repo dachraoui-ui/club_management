@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { 
   DollarSign, TrendingUp, TrendingDown, CreditCard, Building2, Filter, 
-  Plus, Users, Edit, Trash2, Search
+  Plus, Users, Edit, Trash2, Search, Wallet, PiggyBank, Receipt, 
+  ArrowUpRight, ArrowDownRight, Sparkles, BadgeDollarSign, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ import {
   type Sponsor,
 } from '@/hooks/useFinance';
 import { useMembers } from '@/hooks/useMembers';
+import { Member } from '@/types/api';
 
 // Sport categories for filtering
 const SPORT_CATEGORIES = [
@@ -68,11 +70,19 @@ const SPORT_CATEGORIES = [
   'Judo',
 ];
 
+const ITEMS_PER_PAGE = 10;
+
 export default function Finance() {
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [salaryTypeFilter, setSalaryTypeFilter] = useState<string>('all');
   const [salaryStatusFilter, setSalaryStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination states
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [salariesPage, setSalariesPage] = useState(1);
+  const [expensesPage, setExpensesPage] = useState(1);
+  const [sponsorsPage, setSponsorsPage] = useState(1);
   
   // Member selection states
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
@@ -98,11 +108,11 @@ export default function Finance() {
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses();
   const { data: sponsors = [], isLoading: sponsorsLoading } = useSponsors();
   const { data: membersData } = useMembers();
-  const members = membersData?.members || [];
+  const members = useMemo(() => membersData?.members || [], [membersData?.members]);
 
   // Filter members by sport category and search query
   const filteredMembers = useMemo(() => {
-    return members.filter((member: any) => {
+    return members.filter((member: Member) => {
       const fullName = `${member.user?.firstName || ''} ${member.user?.lastName || ''}`.toLowerCase();
       const matchesSearch = !memberSearchQuery || fullName.includes(memberSearchQuery.toLowerCase());
       const matchesSport = sportCategoryFilter === 'All Sports' || member.speciality === sportCategoryFilter;
@@ -127,7 +137,7 @@ export default function Finance() {
   const [paymentForm, setPaymentForm] = useState({
     memberId: '',
     amount: '',
-    type: 'Salary' as 'Salary' | 'Training' | 'Event' | 'Equipment',
+    type: 'Membership' as 'Membership' | 'Training' | 'Event' | 'Equipment',
     method: 'BankTransfer' as 'Card' | 'Cash' | 'BankTransfer',
     status: 'Pending' as 'Paid' | 'Pending' | 'Overdue',
     date: new Date().toISOString().split('T')[0],
@@ -142,6 +152,7 @@ export default function Finance() {
     bonus: '0',
     deductions: '0',
     notes: '',
+    updateMemberSalary: true, // Sync with member's baseSalary
   });
 
   const [expenseForm, setExpenseForm] = useState({
@@ -160,21 +171,49 @@ export default function Finance() {
     endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   });
 
-  // Filter functions
-  const filteredPayments = payments.filter((payment) => {
+  // Filter functions with useMemo
+  const filteredPayments = useMemo(() => payments.filter((payment) => {
     const memberName = `${payment.member?.firstName || ''} ${payment.member?.lastName || ''}`.toLowerCase();
     const matchesSearch = memberName.includes(searchQuery.toLowerCase());
     const matchesFilter = paymentFilter === 'all' || payment.status === paymentFilter;
     return matchesSearch && matchesFilter;
-  });
+  }), [payments, searchQuery, paymentFilter]);
 
-  const filteredSalaries = salaries.filter((salary) => {
+  const filteredSalaries = useMemo(() => salaries.filter((salary) => {
     const userName = `${salary.user?.firstName || ''} ${salary.user?.lastName || ''}`.toLowerCase();
     const matchesSearch = userName.includes(searchQuery.toLowerCase());
     const matchesType = salaryTypeFilter === 'all' || salary.type === salaryTypeFilter;
     const matchesStatus = salaryStatusFilter === 'all' || salary.status === salaryStatusFilter;
     return matchesSearch && matchesType && matchesStatus;
-  });
+  }), [salaries, searchQuery, salaryTypeFilter, salaryStatusFilter]);
+
+  const filteredExpenses = useMemo(() => expenses, [expenses]);
+  const filteredSponsors = useMemo(() => sponsors, [sponsors]);
+
+  // Pagination calculations
+  const paymentsTotalPages = Math.ceil(filteredPayments.length / ITEMS_PER_PAGE);
+  const paginatedPayments = useMemo(() => {
+    const startIndex = (paymentsPage - 1) * ITEMS_PER_PAGE;
+    return filteredPayments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredPayments, paymentsPage]);
+
+  const salariesTotalPages = Math.ceil(filteredSalaries.length / ITEMS_PER_PAGE);
+  const paginatedSalaries = useMemo(() => {
+    const startIndex = (salariesPage - 1) * ITEMS_PER_PAGE;
+    return filteredSalaries.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredSalaries, salariesPage]);
+
+  const expensesTotalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
+  const paginatedExpenses = useMemo(() => {
+    const startIndex = (expensesPage - 1) * ITEMS_PER_PAGE;
+    return filteredExpenses.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredExpenses, expensesPage]);
+
+  const sponsorsTotalPages = Math.ceil(filteredSponsors.length / 6); // 6 sponsors per page (2x3 grid)
+  const paginatedSponsors = useMemo(() => {
+    const startIndex = (sponsorsPage - 1) * 6;
+    return filteredSponsors.slice(startIndex, startIndex + 6);
+  }, [filteredSponsors, sponsorsPage]);
 
   // Reset member search when dialog opens
   const resetMemberSearch = () => {
@@ -229,6 +268,7 @@ export default function Finance() {
         bonus: parseFloat(salaryForm.bonus) || 0,
         deductions: parseFloat(salaryForm.deductions) || 0,
         notes: salaryForm.notes || null,
+        updateMemberSalary: salaryForm.updateMemberSalary,
       });
       toast.success('Salary recorded successfully');
       setSalaryDialogOpen(false);
@@ -248,6 +288,7 @@ export default function Finance() {
         bonus: parseFloat(salaryForm.bonus) || 0,
         deductions: parseFloat(salaryForm.deductions) || 0,
         notes: salaryForm.notes || null,
+        updateMemberSalary: salaryForm.updateMemberSalary,
       });
       toast.success('Salary updated successfully');
       setSalaryDialogOpen(false);
@@ -344,7 +385,7 @@ export default function Finance() {
     setPaymentForm({
       memberId: '',
       amount: '',
-      type: 'Salary',
+      type: 'Membership',
       method: 'BankTransfer',
       status: 'Pending',
       date: new Date().toISOString().split('T')[0],
@@ -362,6 +403,7 @@ export default function Finance() {
       bonus: '0',
       deductions: '0',
       notes: '',
+      updateMemberSalary: true,
     });
     resetMemberSearch();
   };
@@ -392,7 +434,7 @@ export default function Finance() {
     setPaymentForm({
       memberId: payment.memberId,
       amount: payment.amount.toString(),
-      type: payment.type === 'Membership' ? 'Salary' : payment.type as any,
+      type: payment.type,
       method: payment.method,
       status: payment.status,
       date: new Date(payment.date).toISOString().split('T')[0],
@@ -411,6 +453,7 @@ export default function Finance() {
       bonus: (salary.bonus || 0).toString(),
       deductions: (salary.deductions || 0).toString(),
       notes: salary.notes || '',
+      updateMemberSalary: false, // Don't update by default when editing
     });
     setSalaryDialogOpen(true);
   };
@@ -445,11 +488,38 @@ export default function Finance() {
 
   // Get selected member name for display
   const getSelectedMemberName = (userId: string) => {
-    const member = members.find((m: any) => m.userId === userId);
+    const member = members.find((m: Member) => m.userId === userId);
     if (member) {
       return `${member.user?.firstName || ''} ${member.user?.lastName || ''}`;
     }
     return '';
+  };
+
+  // Auto-fill salary form when selecting a member
+  const handleSalaryMemberSelect = (userId: string) => {
+    const member = members.find((m: Member) => m.userId === userId);
+    if (member) {
+      // Map user role to salary type
+      const roleToSalaryType: Record<string, 'Player' | 'Coach' | 'Staff' | 'Manager'> = {
+        'Athlete': 'Player',
+        'Coach': 'Coach',
+        'Staff': 'Staff',
+        'Manager': 'Manager',
+        'Admin': 'Manager',
+      };
+      
+      const salaryType = roleToSalaryType[member.user?.role] || 'Player';
+      const baseSalary = member.baseSalary ? member.baseSalary.toString() : '';
+      
+      setSalaryForm(prev => ({
+        ...prev,
+        userId,
+        type: salaryType,
+        amount: baseSalary,
+      }));
+    } else {
+      setSalaryForm(prev => ({ ...prev, userId }));
+    }
   };
 
   if (statsLoading) {
@@ -506,7 +576,7 @@ export default function Finance() {
                 No members found
               </div>
             ) : (
-              filteredMembers.map((member: any) => (
+              filteredMembers.map((member: Member) => (
                 <div
                   key={member.userId}
                   onClick={() => onChange(member.userId)}
@@ -552,71 +622,169 @@ export default function Finance() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Finance</h2>
-          <p className="text-muted-foreground">Manage payments, salaries, expenses, and sponsorships</p>
+      {/* Enhanced Header with Gradient */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20 p-6 md:p-8">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
+        
+        {/* Floating Icons */}
+        <div className="absolute top-4 right-4 opacity-10">
+          <DollarSign className="w-24 h-24 text-emerald-500" />
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setPaymentDialogOpen(true)} className="bg-accent hover:bg-accent/90">
-            <DollarSign className="w-4 h-4 mr-2" />
-            Record Payment
-          </Button>
+        <div className="absolute bottom-4 right-20 opacity-10">
+          <PiggyBank className="w-16 h-16 text-teal-500" />
+        </div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg text-white">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Financial Dashboard</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2">Finance Management</h2>
+            <p className="text-muted-foreground max-w-md">Track payments, salaries, expenses, and sponsorships all in one place</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setPaymentDialogOpen(true)} 
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Record Payment
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard
-          title="Total Revenue"
-          value={`$${(stats?.revenue.total || 0).toLocaleString()}`}
-          icon={DollarSign}
-          trend={{ value: 12.5, isPositive: true }}
-          variant="accent"
-        />
-        <StatCard
-          title="Pending Payments"
-          value={`$${(stats?.revenue.pending || 0).toLocaleString()}`}
-          icon={CreditCard}
-        />
-        <StatCard
-          title="Salaries Pending"
-          value={`$${(stats?.salaries.pending || 0).toLocaleString()}`}
-          icon={Users}
-        />
-        <StatCard
-          title="Monthly Expenses"
-          value={`$${(stats?.expenses.monthly || 0).toLocaleString()}`}
-          icon={TrendingDown}
-        />
-        <StatCard
-          title="Sponsorships"
-          value={`$${(stats?.sponsorships.totalAmount || 0).toLocaleString()}`}
-          icon={Building2}
-          variant="primary"
-        />
+        {/* Total Revenue Card */}
+        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-600/5 border border-emerald-500/20 p-5 shadow-lg hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg text-white shadow-lg shadow-emerald-500/30">
+                <BadgeDollarSign className="w-5 h-5" />
+              </div>
+              <div className="flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full">
+                <ArrowUpRight className="w-3 h-3" />
+                <span>12.5%</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">${(stats?.revenue.total || 0).toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* Pending Payments Card */}
+        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-amber-500/20 p-5 shadow-lg hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg text-white shadow-lg shadow-amber-500/30">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <Sparkles className="w-4 h-4 text-amber-500/60" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">Pending Payments</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">${(stats?.revenue.pending || 0).toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* Salaries Pending Card */}
+        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-600/5 border border-blue-500/20 p-5 shadow-lg hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg text-white shadow-lg shadow-blue-500/30">
+                <Users className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">Salaries Pending</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">${(stats?.salaries.pending || 0).toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* Monthly Expenses Card */}
+        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-rose-500/10 to-pink-600/5 border border-rose-500/20 p-5 shadow-lg hover:shadow-xl hover:shadow-rose-500/10 transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg text-white shadow-lg shadow-rose-500/30">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <div className="flex items-center gap-1 text-xs bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-full">
+                <ArrowDownRight className="w-3 h-3" />
+                <span>Expense</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">Monthly Expenses</p>
+            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">${(stats?.expenses.monthly || 0).toLocaleString()}</p>
+          </div>
+        </div>
+
+        {/* Sponsorships Card */}
+        <div className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-violet-500/10 to-purple-600/5 border border-violet-500/20 p-5 shadow-lg hover:shadow-xl hover:shadow-violet-500/10 transition-all duration-300 hover:-translate-y-1 backdrop-blur-sm">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-violet-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg text-white shadow-lg shadow-violet-500/30">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <span className="text-xs bg-violet-500/10 text-violet-600 dark:text-violet-400 px-2 py-1 rounded-full">
+                {stats?.sponsorships.activeCount || 0} Active
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-1">Sponsorships</p>
+            <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">${(stats?.sponsorships.totalAmount || 0).toLocaleString()}</p>
+          </div>
+        </div>
       </div>
 
       {/* Revenue vs Expenses Chart */}
-      <Card className="border-0 shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-accent" />
-            Revenue vs Expenses (Last 12 Months)
+      <Card className="border border-border/50 shadow-lg bg-card/30 backdrop-blur-sm">
+        <CardHeader className="border-b border-border/50">
+          <CardTitle className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg text-white shadow-lg shadow-emerald-500/20">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-lg">Revenue vs Expenses</span>
+              <p className="text-sm font-normal text-muted-foreground">Last 12 months financial overview</p>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={stats?.monthlyData || []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <defs>
+                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
                 }}
               />
               <Legend />
@@ -624,32 +792,42 @@ export default function Finance() {
                 type="monotone"
                 dataKey="revenue"
                 name="Revenue"
-                stroke="hsl(var(--accent))"
-                fill="hsl(var(--accent))"
-                fillOpacity={0.2}
-                strokeWidth={2}
+                stroke="#10b981"
+                fill="url(#revenueGradient)"
+                strokeWidth={3}
               />
               <Area
                 type="monotone"
                 dataKey="expenses"
                 name="Expenses"
-                stroke="hsl(var(--destructive))"
-                fill="hsl(var(--destructive))"
-                fillOpacity={0.1}
-                strokeWidth={2}
+                stroke="#f43f5e"
+                fill="url(#expenseGradient)"
+                strokeWidth={3}
               />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Tabs */}
+      {/* Enhanced Tabs */}
       <Tabs defaultValue="payments" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="salaries">Salaries</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="sponsors">Sponsors</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid bg-muted/30 backdrop-blur-sm border border-border/50 p-1 rounded-xl">
+          <TabsTrigger value="payments" className="rounded-lg data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:border data-[state=active]:border-emerald-500/30">
+            <CreditCard className="w-4 h-4 mr-2" />
+            Payments
+          </TabsTrigger>
+          <TabsTrigger value="salaries" className="rounded-lg data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-blue-500/30">
+            <Users className="w-4 h-4 mr-2" />
+            Salaries
+          </TabsTrigger>
+          <TabsTrigger value="expenses" className="rounded-lg data-[state=active]:bg-rose-500/20 data-[state=active]:text-rose-600 dark:data-[state=active]:text-rose-400 data-[state=active]:border data-[state=active]:border-rose-500/30">
+            <Receipt className="w-4 h-4 mr-2" />
+            Expenses
+          </TabsTrigger>
+          <TabsTrigger value="sponsors" className="rounded-lg data-[state=active]:bg-violet-500/20 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400 data-[state=active]:border data-[state=active]:border-violet-500/30">
+            <Building2 className="w-4 h-4 mr-2" />
+            Sponsors
+          </TabsTrigger>
         </TabsList>
 
         {/* Payments Tab */}
@@ -662,8 +840,8 @@ export default function Finance() {
               className="flex-1 max-w-md"
             />
             <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="w-4 h-4 mr-2" />
+              <SelectTrigger className="w-[180px] bg-card border-border/50">
+                <Filter className="w-4 h-4 mr-2 text-emerald-500" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -675,23 +853,36 @@ export default function Finance() {
             </Select>
           </div>
 
-          <Card className="border-0 shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Payments</CardTitle>
-              <Button size="sm" onClick={() => setPaymentDialogOpen(true)} className="bg-accent hover:bg-accent/90">
+          <Card className="border border-emerald-500/20 shadow-lg bg-card/30 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-500/20 rounded-lg">
+                  <CreditCard className="w-4 h-4 text-emerald-600" />
+                </div>
+                Recent Payments
+              </CardTitle>
+              <Button size="sm" onClick={() => setPaymentDialogOpen(true)} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Payment
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {paymentsLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
+                </div>
               ) : filteredPayments.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No payments found</div>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CreditCard className="w-8 h-8 text-emerald-500" />
+                  </div>
+                  <p className="text-muted-foreground">No payments found</p>
+                </div>
               ) : (
+                <>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead>Member</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Amount</TableHead>
@@ -702,25 +893,37 @@ export default function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPayments.map((payment) => (
-                      <TableRow key={payment.id}>
+                    {paginatedPayments.map((payment) => (
+                      <TableRow key={payment.id} className="hover:bg-emerald-500/5 transition-colors">
                         <TableCell className="font-medium">
-                          {payment.member?.firstName} {payment.member?.lastName}
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
+                              {payment.member?.firstName?.[0]}{payment.member?.lastName?.[0]}
+                            </div>
+                            {payment.member?.firstName} {payment.member?.lastName}
+                          </div>
                         </TableCell>
-                        <TableCell>{payment.type}</TableCell>
-                        <TableCell className="font-semibold">${payment.amount.toLocaleString()}</TableCell>
-                        <TableCell>{formatDate(payment.date)}</TableCell>
-                        <TableCell>{payment.method}</TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600">
+                            {payment.type}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-bold text-emerald-600">${payment.amount.toLocaleString()}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(payment.date)}</TableCell>
+                        <TableCell>
+                          <span className="text-sm">{payment.method}</span>
+                        </TableCell>
                         <TableCell>
                           <StatusBadge status={payment.status} />
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => openEditPayment(payment)}>
+                          <Button variant="ghost" size="icon" onClick={() => openEditPayment(payment)} className="hover:bg-emerald-500/10 hover:text-emerald-600">
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon"
+                            className="hover:bg-rose-500/10"
                             onClick={() => {
                               setDeleteTarget({ 
                                 type: 'payment', 
@@ -730,13 +933,56 @@ export default function Finance() {
                               setDeleteDialogOpen(true);
                             }}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4 text-rose-500" />
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              </>
+              )}
+
+              {/* Payments Pagination */}
+              {paymentsTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t px-6">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((paymentsPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(paymentsPage * ITEMS_PER_PAGE, filteredPayments.length)} of {filteredPayments.length} payments
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
+                      disabled={paymentsPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: paymentsTotalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={paymentsPage === page ? "default" : "outline"}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setPaymentsPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentsPage(p => Math.min(paymentsTotalPages, p + 1))}
+                      disabled={paymentsPage === paymentsTotalPages}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -752,7 +998,7 @@ export default function Finance() {
               className="flex-1 max-w-md"
             />
             <Select value={salaryTypeFilter} onValueChange={setSalaryTypeFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[150px] bg-card border-border/50">
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
@@ -764,7 +1010,7 @@ export default function Finance() {
               </SelectContent>
             </Select>
             <Select value={salaryStatusFilter} onValueChange={setSalaryStatusFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[150px] bg-card border-border/50">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -776,23 +1022,36 @@ export default function Finance() {
             </Select>
           </div>
 
-          <Card className="border-0 shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Salary Records</CardTitle>
-              <Button size="sm" onClick={() => setSalaryDialogOpen(true)} className="bg-accent hover:bg-accent/90">
+          <Card className="border border-blue-500/20 shadow-lg bg-card/30 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-gradient-to-r from-blue-500/10 to-indigo-500/10">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                  <Users className="w-4 h-4 text-blue-600" />
+                </div>
+                Salary Records
+              </CardTitle>
+              <Button size="sm" onClick={() => setSalaryDialogOpen(true)} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg shadow-blue-500/25">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Salary
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {salariesLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                </div>
               ) : filteredSalaries.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No salary records found</div>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <p className="text-muted-foreground">No salary records found</p>
+                </div>
               ) : (
+                <>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead>Employee</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Month</TableHead>
@@ -805,41 +1064,53 @@ export default function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSalaries.map((salary) => {
+                    {paginatedSalaries.map((salary) => {
                       const net = salary.amount + (salary.bonus || 0) - (salary.deductions || 0);
                       return (
-                        <TableRow key={salary.id}>
+                        <TableRow key={salary.id} className="hover:bg-blue-500/5 transition-colors">
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="w-8 h-8">
-                                <AvatarFallback className="text-xs">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-9 h-9 border-2 border-blue-500/20">
+                                <AvatarFallback className="text-xs bg-gradient-to-br from-blue-400 to-indigo-500 text-white">
                                   {salary.user?.firstName?.[0]}{salary.user?.lastName?.[0]}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p>{salary.user?.firstName} {salary.user?.lastName}</p>
+                                <p className="font-medium">{salary.user?.firstName} {salary.user?.lastName}</p>
                                 <p className="text-xs text-muted-foreground">{salary.user?.role}</p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <StatusBadge status={salary.type} />
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              salary.type === 'Coach' ? 'bg-blue-500/10 text-blue-600' :
+                              salary.type === 'Player' ? 'bg-indigo-500/10 text-indigo-600' :
+                              salary.type === 'Manager' ? 'bg-purple-500/10 text-purple-600' :
+                              'bg-slate-500/10 text-slate-600'
+                            }`}>
+                              {salary.type}
+                            </span>
                           </TableCell>
-                          <TableCell>{formatMonth(salary.month)}</TableCell>
-                          <TableCell>${salary.amount.toLocaleString()}</TableCell>
-                          <TableCell className="text-green-600">+${(salary.bonus || 0).toLocaleString()}</TableCell>
-                          <TableCell className="text-red-600">-${(salary.deductions || 0).toLocaleString()}</TableCell>
-                          <TableCell className="font-semibold">${net.toLocaleString()}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatMonth(salary.month)}</TableCell>
+                          <TableCell className="font-medium">${salary.amount.toLocaleString()}</TableCell>
+                          <TableCell>
+                            <span className="text-emerald-600 font-medium">+${(salary.bonus || 0).toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-rose-500 font-medium">-${(salary.deductions || 0).toLocaleString()}</span>
+                          </TableCell>
+                          <TableCell className="font-bold text-blue-600">${net.toLocaleString()}</TableCell>
                           <TableCell>
                             <StatusBadge status={salary.status} />
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => openEditSalary(salary)}>
+                            <Button variant="ghost" size="icon" onClick={() => openEditSalary(salary)} className="hover:bg-blue-500/10 hover:text-blue-600">
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="icon"
+                              className="hover:bg-rose-500/10"
                               onClick={() => {
                                 setDeleteTarget({ 
                                   type: 'salary', 
@@ -849,7 +1120,7 @@ export default function Finance() {
                                 setDeleteDialogOpen(true);
                               }}
                             >
-                              <Trash2 className="w-4 h-4 text-destructive" />
+                              <Trash2 className="w-4 h-4 text-rose-500" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -857,30 +1128,89 @@ export default function Finance() {
                     })}
                   </TableBody>
                 </Table>
+                </>
               )}
+                {/* Salaries Pagination */}
+                {salariesTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t px-6">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((salariesPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(salariesPage * ITEMS_PER_PAGE, filteredSalaries.length)} of {filteredSalaries.length} salaries
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSalariesPage(p => Math.max(1, p - 1))}
+                        disabled={salariesPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: salariesTotalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={salariesPage === page ? "default" : "outline"}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setSalariesPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSalariesPage(p => Math.min(salariesTotalPages, p + 1))}
+                        disabled={salariesPage === salariesTotalPages}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="space-y-4">
-          <Card className="border-0 shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Expense Records</CardTitle>
-              <Button size="sm" onClick={() => setExpenseDialogOpen(true)} className="bg-accent hover:bg-accent/90">
+          <Card className="border border-rose-500/20 shadow-lg bg-card/30 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-gradient-to-r from-rose-500/10 to-pink-500/10">
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 bg-rose-500/20 rounded-lg">
+                  <Receipt className="w-4 h-4 text-rose-600" />
+                </div>
+                Expense Records
+              </CardTitle>
+              <Button size="sm" onClick={() => setExpenseDialogOpen(true)} className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white shadow-lg shadow-rose-500/25">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Expense
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {expensesLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-500 mx-auto"></div>
+                </div>
               ) : expenses.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No expenses found</div>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Receipt className="w-8 h-8 text-rose-500" />
+                  </div>
+                  <p className="text-muted-foreground mb-4">No expenses found</p>
+                  <Button onClick={() => setExpenseDialogOpen(true)} variant="outline" className="border-rose-500/30 text-rose-600 hover:bg-rose-500/10">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Expense
+                  </Button>
+                </div>
               ) : (
+                <>
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableHead>Description</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Amount</TableHead>
@@ -889,20 +1219,30 @@ export default function Finance() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell className="font-medium">{expense.description}</TableCell>
-                        <TableCell>
-                          <StatusBadge status={expense.category} />
+                    {paginatedExpenses.map((expense) => (
+                      <TableRow key={expense.id} className="hover:bg-rose-500/5 transition-colors">
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white">
+                              <TrendingDown className="w-4 h-4" />
+                            </div>
+                            {expense.description}
+                          </div>
                         </TableCell>
-                        <TableCell className="font-semibold text-red-600">
+                        <TableCell>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-600">
+                            {expense.category}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-bold text-rose-600">
                           -${expense.amount.toLocaleString()}
                         </TableCell>
-                        <TableCell>{formatDate(expense.date)}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(expense.date)}</TableCell>
                         <TableCell className="text-right">
                           <Button 
                             variant="ghost" 
                             size="icon"
+                            className="hover:bg-rose-500/10"
                             onClick={() => {
                               setDeleteTarget({ 
                                 type: 'expense', 
@@ -912,14 +1252,56 @@ export default function Finance() {
                               setDeleteDialogOpen(true);
                             }}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className="w-4 h-4 text-rose-500" />
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+                </>
               )}
+                {/* Expenses Pagination */}
+                {expensesTotalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t px-6">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((expensesPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(expensesPage * ITEMS_PER_PAGE, filteredExpenses.length)} of {filteredExpenses.length} expenses
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpensesPage(p => Math.max(1, p - 1))}
+                        disabled={expensesPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: expensesTotalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant={expensesPage === page ? "default" : "outline"}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setExpensesPage(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpensesPage(p => Math.min(expensesTotalPages, p + 1))}
+                        disabled={expensesPage === expensesTotalPages}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -927,70 +1309,146 @@ export default function Finance() {
         {/* Sponsors Tab */}
         <TabsContent value="sponsors" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={() => setSponsorDialogOpen(true)} className="bg-accent hover:bg-accent/90">
+            <Button onClick={() => setSponsorDialogOpen(true)} className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/25">
               <Plus className="w-4 h-4 mr-2" />
               Add Sponsor
             </Button>
           </div>
           
           {sponsorsLoading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-500 mx-auto"></div>
+            </div>
           ) : sponsors.length === 0 ? (
-            <Card className="border-0 shadow-md">
-              <CardContent className="py-12 text-center">
-                <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No sponsors yet</h3>
-                <p className="text-muted-foreground mb-4">Add your first sponsor to get started</p>
-                <Button onClick={() => setSponsorDialogOpen(true)} className="bg-accent hover:bg-accent/90">
+            <Card className="border border-violet-500/20 shadow-lg bg-gradient-to-br from-violet-500/5 to-purple-500/5 overflow-hidden backdrop-blur-sm">
+              <CardContent className="py-16 text-center relative">
+                <div className="absolute top-4 right-4 opacity-10">
+                  <Building2 className="w-32 h-32 text-violet-500" />
+                </div>
+                <div className="w-20 h-20 bg-gradient-to-br from-violet-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-violet-500/30">
+                  <Building2 className="h-10 w-10 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">No sponsors yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">Partner with sponsors to grow your club's reach and funding</p>
+                <Button onClick={() => setSponsorDialogOpen(true)} className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/25">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Sponsor
+                  Add First Sponsor
                 </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sponsors.map((sponsor) => (
-                <Card key={sponsor.id} className="border-0 shadow-md">
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedSponsors.map((sponsor) => (
+                <Card key={sponsor.id} className={`border shadow-lg overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl backdrop-blur-sm ${
+                  sponsor.tier === 'Gold' ? 'bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border-amber-500/20 hover:shadow-amber-500/20' :
+                  sponsor.tier === 'Silver' ? 'bg-gradient-to-br from-slate-400/10 to-gray-500/5 border-slate-400/20 hover:shadow-slate-400/20' :
+                  'bg-gradient-to-br from-amber-700/10 to-orange-800/5 border-amber-700/20 hover:shadow-amber-700/20'
+                }`}>
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Building2 className="w-6 h-6 text-primary" />
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-lg ${
+                        sponsor.tier === 'Gold' ? 'bg-gradient-to-br from-amber-400 to-yellow-500 shadow-amber-400/30' :
+                        sponsor.tier === 'Silver' ? 'bg-gradient-to-br from-slate-300 to-gray-400 shadow-slate-300/30' :
+                        'bg-gradient-to-br from-amber-600 to-orange-700 shadow-amber-600/30'
+                      }`}>
+                        <Building2 className="w-7 h-7 text-white" />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={sponsor.tier} />
-                        <Button variant="ghost" size="icon" onClick={() => openEditSponsor(sponsor)}>
+                      <div className="flex items-center gap-1">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          sponsor.tier === 'Gold' ? 'bg-amber-500/20 text-amber-600' :
+                          sponsor.tier === 'Silver' ? 'bg-slate-400/20 text-slate-600' :
+                          'bg-amber-700/20 text-amber-700'
+                        }`}>
+                          {sponsor.tier}
+                        </span>
+                        <Button variant="ghost" size="icon" onClick={() => openEditSponsor(sponsor)} className="hover:bg-violet-500/10 hover:text-violet-600">
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon"
+                          className="hover:bg-rose-500/10"
                           onClick={() => {
                             setDeleteTarget({ type: 'sponsor', id: sponsor.id, name: sponsor.name });
                             setDeleteDialogOpen(true);
                           }}
                         >
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                          <Trash2 className="w-4 h-4 text-rose-500" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-4">
                     <div>
-                      <h3 className="font-semibold text-lg">{sponsor.name}</h3>
-                      <StatusBadge status={sponsor.status} className="mt-1" />
+                      <h3 className="font-bold text-xl">{sponsor.name}</h3>
+                      <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        sponsor.status === 'Active' ? 'bg-emerald-500/10 text-emerald-600' :
+                        sponsor.status === 'Pending' ? 'bg-amber-500/10 text-amber-600' :
+                        'bg-rose-500/10 text-rose-600'
+                      }`}>
+                        {sponsor.status}
+                      </span>
                     </div>
-                    <div className="pt-2 border-t">
-                      <p className="text-2xl font-bold text-accent">${sponsor.amount.toLocaleString()}</p>
+                    <div className="pt-3 border-t border-border/50">
+                      <p className={`text-3xl font-bold ${
+                        sponsor.tier === 'Gold' ? 'text-amber-500' :
+                        sponsor.tier === 'Silver' ? 'text-slate-500' :
+                        'text-amber-700'
+                      }`}>${sponsor.amount.toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">Annual sponsorship</p>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>Start: {formatDate(sponsor.startDate)}</p>
-                      <p>End: {formatDate(sponsor.endDate)}</p>
+                    <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t border-border/50">
+                      <span>📅 {formatDate(sponsor.startDate)}</span>
+                      <span>→ {formatDate(sponsor.endDate)}</span>
                     </div>
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+
+              {/* Sponsors Pagination */}
+              {sponsorsTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((sponsorsPage - 1) * 6) + 1} to {Math.min(sponsorsPage * 6, filteredSponsors.length)} of {filteredSponsors.length} sponsors
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSponsorsPage(p => Math.max(1, p - 1))}
+                      disabled={sponsorsPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: sponsorsTotalPages }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={sponsorsPage === page ? "default" : "outline"}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setSponsorsPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSponsorsPage(p => Math.min(sponsorsTotalPages, p + 1))}
+                      disabled={sponsorsPage === sponsorsTotalPages}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>
@@ -1040,15 +1498,15 @@ export default function Finance() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={paymentForm.type} onValueChange={(v: 'Salary' | 'Training' | 'Event' | 'Equipment') => setPaymentForm({ ...paymentForm, type: v })}>
+                <Select value={paymentForm.type} onValueChange={(v: 'Membership' | 'Training' | 'Event' | 'Equipment') => setPaymentForm({ ...paymentForm, type: v })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Salary">Salary</SelectItem>
-                    <SelectItem value="Training">Training Bonus</SelectItem>
-                    <SelectItem value="Event">Event Bonus</SelectItem>
-                    <SelectItem value="Equipment">Equipment Allowance</SelectItem>
+                    <SelectItem value="Membership">Membership</SelectItem>
+                    <SelectItem value="Training">Training Fee</SelectItem>
+                    <SelectItem value="Event">Event Fee</SelectItem>
+                    <SelectItem value="Equipment">Equipment</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1105,16 +1563,22 @@ export default function Finance() {
           <DialogHeader>
             <DialogTitle>{editingSalary ? 'Edit Salary' : 'Add Salary Record'}</DialogTitle>
             <DialogDescription>
-              {editingSalary ? 'Update salary details' : 'Record monthly salary for an employee'}
+              {editingSalary ? 'Update salary details' : 'Record monthly salary for an employee (auto-fills from member base salary)'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {!editingSalary && (
               <MemberSelector
                 value={salaryForm.userId}
-                onChange={(v) => setSalaryForm({ ...salaryForm, userId: v })}
+                onChange={handleSalaryMemberSelect}
                 label="Select Employee"
               />
+            )}
+            {/* Show hint when member is selected and has base salary */}
+            {!editingSalary && salaryForm.userId && salaryForm.amount && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-sm">
+                <span className="text-blue-600 dark:text-blue-400">💡 Base salary auto-filled from member profile</span>
+              </div>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1189,6 +1653,19 @@ export default function Finance() {
                 onChange={(e) => setSalaryForm({ ...salaryForm, notes: e.target.value })}
                 placeholder="Any additional notes..."
               />
+            </div>
+            {/* Sync with member profile option */}
+            <div className="flex items-center space-x-2 p-3 bg-secondary/50 rounded-lg">
+              <input
+                type="checkbox"
+                id="updateMemberSalary"
+                checked={salaryForm.updateMemberSalary}
+                onChange={(e) => setSalaryForm({ ...salaryForm, updateMemberSalary: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <label htmlFor="updateMemberSalary" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Update member's base salary in profile
+              </label>
             </div>
           </div>
           <DialogFooter>

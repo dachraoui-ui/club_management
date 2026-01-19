@@ -3,7 +3,7 @@ import { hashPassword, comparePassword } from '../utils/bcrypt.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
 
 /**
- * Login user
+ * Login user - Only admin users can login
  */
 export const loginUser = async (email, password) => {
   const user = await prisma.user.findUnique({
@@ -14,6 +14,11 @@ export const loginUser = async (email, password) => {
   });
 
   if (!user) {
+    throw new Error('Invalid email or password');
+  }
+
+  // Only allow admin users to login
+  if (user.role !== 'Admin') {
     throw new Error('Invalid email or password');
   }
 
