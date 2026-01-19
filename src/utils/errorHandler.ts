@@ -8,8 +8,9 @@ export const handleApiError = (error: any): { message: string; errors: any[] } =
     };
   } else if (error.request) {
     // Request made but no response - backend is not reachable
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     return {
-      message: 'Cannot connect to server. Make sure the backend is running on http://localhost:5000',
+      message: `Cannot connect to server. Make sure the backend is running on ${apiUrl.replace('/api', '')}`,
       errors: [],
     };
   } else {

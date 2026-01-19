@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { 
   User, Lock, Bell, Palette, Camera, Upload, Building2, 
   RefreshCw, Check, Eye, EyeOff, Shield, Trash2,
-  Sun, Moon, Monitor, Sparkles
+  Sun, Moon, Monitor, Sparkles, Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useSettings } from '@/contexts/SettingsContext';
 import { toast } from 'sonner';
+import { authService } from '@/services/authService';
 
 // Preset color themes
 const colorPresets = [
@@ -33,7 +34,9 @@ export default function Settings() {
   
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [profileForm, setProfileForm] = useState(settings.profile);
   const [brandingForm, setBrandingForm] = useState(settings.branding);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -90,7 +93,7 @@ export default function Settings() {
   };
 
   // Change password
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
       toast.error('Please fill in all password fields');
       return;
@@ -103,9 +106,18 @@ export default function Settings() {
       toast.error('Password must be at least 8 characters');
       return;
     }
-    // In production, this would call an API
-    toast.success('Password changed successfully!');
-    setPasswordForm({ current: '', new: '', confirm: '' });
+    
+    setIsChangingPassword(true);
+    try {
+      await authService.changePassword(passwordForm.current, passwordForm.new);
+      toast.success('Password changed successfully!');
+      setPasswordForm({ current: '', new: '', confirm: '' });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to change password';
+      toast.error(errorMessage);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   // Apply preset theme
@@ -591,12 +603,23 @@ export default function Settings() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input 
-                    id="confirmPassword" 
-                    type="password"
-                    value={passwordForm.confirm}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-                  />
+                  <div className="relative">
+                    <Input 
+                      id="confirmPassword" 
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={passwordForm.confirm}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
                 </div>
                 
                 {passwordForm.new && (
@@ -617,8 +640,19 @@ export default function Settings() {
                 )}
 
                 <div className="flex justify-end pt-4">
-                  <Button onClick={handleChangePassword} className="bg-sidebar-primary hover:bg-sidebar-primary/80">
-                    Update Password
+                  <Button 
+                    onClick={handleChangePassword} 
+                    className="bg-sidebar-primary hover:bg-sidebar-primary/80"
+                    disabled={isChangingPassword}
+                  >
+                    {isChangingPassword ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      'Update Password'
+                    )}
                   </Button>
                 </div>
               </CardContent>
