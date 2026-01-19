@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '@/services/authService';
 import {
   CommandDialog,
   CommandEmpty,
@@ -56,11 +57,28 @@ export function Navbar({ title }: NavbarProps) {
     return firstInitial + lastInitial || 'AD';
   };
 
-  const handleLogout = () => {
-    // Clear any stored auth tokens
+  const handleLogout = async () => {
+    try {
+      // Call logout API to invalidate token on server
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // Clear all stored data
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('authToken');
-    // Navigate to login page
-    navigate('/');
+    sessionStorage.clear();
+    
+    // Clear browser history and prevent back navigation
+    // Replace the current history entry with login page
+    window.history.pushState(null, '', '/');
+    window.history.pushState(null, '', '/');
+    window.history.go(-1);
+    
+    // Force navigation to login page (replace to clear history)
+    window.location.replace('/');
   };
 
   return (

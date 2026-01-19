@@ -7,7 +7,6 @@ export interface Member {
   email: string;
   phone: string;
   dateOfBirth: string;
-  membershipType: 'Basic' | 'Premium' | 'Elite';
   status: 'Active' | 'Inactive' | 'Pending';
   sports: string[];
   joinDate: string;
@@ -87,7 +86,6 @@ export const members: Member[] = [
     email: 'john.smith@email.com',
     phone: '+1 234 567 8901',
     dateOfBirth: '1990-05-15',
-    membershipType: 'Premium',
     status: 'Active',
     sports: ['Football', 'Basketball'],
     joinDate: '2023-01-15',
@@ -101,7 +99,6 @@ export const members: Member[] = [
     email: 'sarah.j@email.com',
     phone: '+1 234 567 8903',
     dateOfBirth: '1995-08-22',
-    membershipType: 'Elite',
     status: 'Active',
     sports: ['Tennis', 'Swimming'],
     joinDate: '2022-06-10',
@@ -115,7 +112,6 @@ export const members: Member[] = [
     email: 'mike.w@email.com',
     phone: '+1 234 567 8905',
     dateOfBirth: '1988-12-03',
-    membershipType: 'Basic',
     status: 'Active',
     sports: ['Football'],
     joinDate: '2023-09-01',
@@ -129,7 +125,6 @@ export const members: Member[] = [
     email: 'emily.b@email.com',
     phone: '+1 234 567 8907',
     dateOfBirth: '1992-03-28',
-    membershipType: 'Premium',
     status: 'Inactive',
     sports: ['Basketball', 'Volleyball'],
     joinDate: '2021-11-20',
@@ -143,7 +138,6 @@ export const members: Member[] = [
     email: 'david.lee@email.com',
     phone: '+1 234 567 8909',
     dateOfBirth: '1997-07-14',
-    membershipType: 'Elite',
     status: 'Active',
     sports: ['Swimming', 'Tennis', 'Running'],
     joinDate: '2022-03-05',
@@ -157,7 +151,6 @@ export const members: Member[] = [
     email: 'lisa.a@email.com',
     phone: '+1 234 567 8911',
     dateOfBirth: '1994-11-09',
-    membershipType: 'Premium',
     status: 'Pending',
     sports: ['Yoga', 'Pilates'],
     joinDate: '2024-01-10',

@@ -53,7 +53,6 @@ router.post(
       }
       return true;
     }),
-    body('membershipType').optional().isIn(['Basic', 'Premium', 'Elite']).withMessage('Invalid membership type'),
     body('teamId').optional().isUUID().withMessage('Invalid team ID'),
     body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
     body('height').optional().isFloat({ min: 0 }).withMessage('Height must be a positive number'),

@@ -16,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useSettings } from '@/contexts/SettingsContext';
+import { authService } from '@/services/authService';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -105,16 +106,30 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Logout */}
       <div className="p-2 border-t border-sidebar-border">
-        <NavLink
-          to="/"
+        <button
+          onClick={async () => {
+            try {
+              await authService.logout();
+            } catch (error) {
+              console.error('Logout error:', error);
+            }
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('authToken');
+            sessionStorage.clear();
+            window.history.pushState(null, '', '/');
+            window.history.pushState(null, '', '/');
+            window.history.go(-1);
+            window.location.replace('/');
+          }}
           className={cn(
-            'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full',
             'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
           )}
         >
           <LogOut className={cn('w-5 h-5 flex-shrink-0', collapsed && 'mx-auto')} />
           {!collapsed && <span className="font-medium">Logout</span>}
-        </NavLink>
+        </button>
       </div>
     </aside>
   );

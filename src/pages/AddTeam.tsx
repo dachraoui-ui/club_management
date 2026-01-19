@@ -66,11 +66,14 @@ export default function AddTeam() {
   const { data: membersData } = useMembers({ limit: 1000 });
   const { data: teamsData } = useTeams();
 
+  // Extract members array from the response
+  const members = membersData?.members || [];
+
   // Get IDs of coaches already assigned to teams
   const assignedCoachIds = (teamsData || []).map((team) => team.coach?.id).filter(Boolean);
 
   // Get coaches (users with Coach role) - exclude those already assigned to another team
-  const coaches = (membersData || [])
+  const coaches = members
     .filter((member) => member.user?.role === 'Coach')
     .filter((member) => !assignedCoachIds.includes(member.user?.id || member.id))
     .map((member) => ({
@@ -80,7 +83,7 @@ export default function AddTeam() {
     }));
 
   // Get athletes (users with Athlete role)
-  const athletes = (membersData || [])
+  const athletes = members
     .filter((member) => member.user?.role === 'Athlete')
     .map((member) => ({
       id: member.user?.id || member.id,
@@ -90,7 +93,7 @@ export default function AddTeam() {
     }));
 
   // Get staff (users with Staff role)
-  const staff = (membersData || [])
+  const staff = members
     .filter((member) => member.user?.role === 'Staff')
     .map((member) => ({
       id: member.user?.id || member.id,

@@ -10,7 +10,6 @@ export const getAllMembers = async (query) => {
     limit = 10,
     search = '',
     status,
-    membershipType,
   } = query;
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -29,11 +28,10 @@ export const getAllMembers = async (query) => {
     };
   }
 
-  // Add status and/or membership type filter (subscriptions are on User, not Member)
-  if (status || membershipType) {
+  // Add status filter (subscriptions are on User, not Member)
+  if (status) {
     const subscriptionFilter = {};
     if (status) subscriptionFilter.status = status;
-    if (membershipType) subscriptionFilter.type = membershipType;
 
     where.user = {
       ...where.user,
@@ -52,7 +50,6 @@ export const getAllMembers = async (query) => {
         user: {
           include: {
             subscriptions: {
-              where: membershipType ? { type: membershipType } : undefined,
               orderBy: { createdAt: 'desc' },
               take: 1,
             },
@@ -303,24 +300,6 @@ export const createMember = async (memberData) => {
         },
       },
     });
-
-    // Create subscription only for Athletes if membershipType is provided
-    if (role === 'Athlete' && membershipType) {
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setFullYear(endDate.getFullYear() + 1);
-
-      await tx.subscription.create({
-        data: {
-          userId: user.id,
-          type: membershipType,
-          status: 'Active',
-          startDate,
-          endDate,
-          price: membershipType === 'Elite' ? 250 : membershipType === 'Premium' ? 150 : 75,
-        },
-      });
-    }
 
     return member;
   });
