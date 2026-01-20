@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   User, Lock, Bell, Palette, Camera, Upload, Building2, 
   RefreshCw, Check, Eye, EyeOff, Shield, Trash2,
@@ -31,6 +32,9 @@ const colorPresets = [
 
 export default function Settings() {
   const { settings, updateBranding, updateNotifications, updateAppearance, updateProfile } = useSettings();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'profile';
+  const [activeTab, setActiveTab] = useState(initialTab);
   
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -43,6 +47,14 @@ export default function Settings() {
   
   const logoInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['profile', 'branding', 'security', 'notifications', 'appearance'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   // Handle logo upload
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,7 +207,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="w-4 h-4" />

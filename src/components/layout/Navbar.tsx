@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Search, User, LogOut } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -158,17 +158,17 @@ export function Navbar({ title }: NavbarProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate('/settings?tab=profile')}
                 className="cursor-pointer"
               >
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
               <DropdownMenuItem 
-                onClick={() => navigate('/settings')}
+                onClick={() => navigate('/settings?tab=security')}
                 className="cursor-pointer"
               >
-                <Search className="w-4 h-4 mr-2" />
+                <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />

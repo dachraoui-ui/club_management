@@ -87,6 +87,94 @@ A comprehensive, full-stack sports club management platform built with React, Ty
 
 ## 🚀 Quick Start
 
+### Option 1: Docker (Recommended)
+
+The easiest way to run ClubChamp is using Docker images.
+
+#### Prerequisites
+- **Docker** - [Download](https://www.docker.com/get-started)
+- **Docker Compose** - Included with Docker Desktop
+
+#### 1. Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clubchamp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clubchamp
+      POSTGRES_PASSWORD: clubchamp123
+      POSTGRES_DB: clubchamp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clubchamp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/dachraoui-ui/clubchamp-backend:latest
+    container_name: clubchamp-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://clubchamp:clubchamp123@postgres:5432/clubchamp?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+      JWT_REFRESH_SECRET: your-refresh-secret-key-change-in-production
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "5001:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma migrate deploy && node src/server.js"
+
+  frontend:
+    image: ghcr.io/dachraoui-ui/clubchamp-frontend:latest
+    container_name: clubchamp-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+```
+
+#### 2. Run the application:
+
+```bash
+# Pull and start all services
+docker-compose up -d
+
+# Seed demo data (optional)
+docker-compose exec backend node prisma/seed.js
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+```
+
+#### 3. Access the application:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5001/api
+
+---
+
+### Option 2: Manual Setup
+
 ### Prerequisites
 - **Node.js 20+** - [Download](https://nodejs.org/)
 - **PostgreSQL** - [Download](https://www.postgresql.org/download/)
