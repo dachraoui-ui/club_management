@@ -14,14 +14,18 @@ import eventRoutes from './routes/eventRoutes.js';
 import financeRoutes from './routes/financeRoutes.js';
 import statisticsRoutes from './routes/statisticsRoutes.js';
 
+
 const app = express();
+
+// Trust proxy - Required for Render/Vercel/Heroku
+app.set('trust proxy', 1);
 
 // Middlewares
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     const allowedOrigins = [
       config.cors.origin,
       'http://localhost:3000',
@@ -33,7 +37,7 @@ app.use(cors({
       'http://127.0.0.1:8081',
       'http://127.0.0.1:5173',
     ];
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
