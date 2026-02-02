@@ -17,20 +17,57 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Settings',
 };
 
+// Custom hook to detect mobile viewport
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 export function MainLayout() {
   const { settings, updateAppearance } = useSettings();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(settings.appearance.sidebarCollapsed);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   // Sync sidebar collapsed state with settings
   useEffect(() => {
     setSidebarCollapsed(settings.appearance.sidebarCollapsed);
   }, [settings.appearance.sidebarCollapsed]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.classList.remove('mobile-menu-open');
+    }
+    return () => {
+      document.body.classList.remove('mobile-menu-open');
+    };
+  }, [mobileMenuOpen]);
+
   // Apply compact mode and animations classes to root
   useEffect(() => {
     const root = document.documentElement;
-    
+
     // Compact mode
     if (settings.appearance.compactMode) {
       root.classList.add('compact-mode');
@@ -53,6 +90,14 @@ export function MainLayout() {
     updateAppearance({ sidebarCollapsed: newCollapsed });
   };
 
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleMobileMenuClose = () => {
+    setMobileMenuOpen(false);
+  };
+
   const getTitle = () => {
     // Handle dynamic routes
     if (location.pathname.startsWith('/members/')) return 'Member Details';
@@ -67,18 +112,39 @@ export function MainLayout() {
       "min-h-screen bg-background",
       settings.appearance.compactMode && "compact-mode"
     )}>
-      <Sidebar collapsed={sidebarCollapsed} onToggle={handleSidebarToggle} />
+      {/* Mobile Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          className="mobile-sidebar-overlay"
+          onClick={handleMobileMenuClose}
+          aria-hidden="true"
+        />
+      )}
+
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={handleSidebarToggle}
+        isMobile={isMobile}
+        isOpen={mobileMenuOpen}
+        onClose={handleMobileMenuClose}
+      />
+
       <div
         className={cn(
           'transition-all',
           settings.appearance.animationsEnabled ? 'duration-300' : 'duration-0',
-          sidebarCollapsed ? 'ml-16' : 'ml-64'
+          // Only apply margin on desktop
+          !isMobile && (sidebarCollapsed ? 'ml-16' : 'ml-64')
         )}
       >
-        <Navbar title={getTitle()} />
+        <Navbar
+          title={getTitle()}
+          onMenuClick={handleMobileMenuToggle}
+          isMobile={isMobile}
+        />
         <main className={cn(
-          "p-6",
-          settings.appearance.compactMode && "p-4"
+          "p-4 md:p-6",
+          settings.appearance.compactMode && "p-3 md:p-4"
         )}>
           <Outlet />
         </main>

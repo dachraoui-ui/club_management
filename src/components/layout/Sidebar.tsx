@@ -12,6 +12,7 @@ import {
   Dumbbell,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,9 @@ import { authService } from '@/services/authService';
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const navItems = [
@@ -34,11 +38,99 @@ const navItems = [
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, isMobile, isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const { settings } = useSettings();
   const { clubName, clubLogo } = settings.branding;
 
+  // Mobile: hidden by default, shown as overlay when isOpen
+  // Desktop: always visible, collapsed or expanded
+  if (isMobile) {
+    return (
+      <aside
+        className={cn(
+          'mobile-sidebar flex flex-col',
+          isOpen ? 'mobile-sidebar-visible' : 'mobile-sidebar-hidden'
+        )}
+      >
+        {/* Logo & Close Button */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-sidebar-border">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center overflow-hidden">
+              {clubLogo ? (
+                <img src={clubLogo} alt={clubName} className="w-full h-full object-cover" />
+              ) : (
+                <Trophy className="w-5 h-5 text-sidebar-primary-foreground" />
+              )}
+            </div>
+            <span className="font-bold text-lg text-sidebar-foreground truncate max-w-[160px]">{clubName}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                  'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  isActive
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
+                    : 'text-sidebar-foreground/80'
+                )}
+              >
+                <item.icon className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* Logout */}
+        <div className="p-2 border-t border-sidebar-border">
+          <button
+            onClick={async () => {
+              try {
+                await authService.logout();
+              } catch (error) {
+                console.error('Logout error:', error);
+              }
+              localStorage.removeItem('accessToken');
+              localStorage.removeItem('refreshToken');
+              localStorage.removeItem('authToken');
+              sessionStorage.clear();
+              window.history.pushState(null, '', '/');
+              window.history.pushState(null, '', '/');
+              window.history.go(-1);
+              window.location.replace('/');
+            }}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 w-full',
+              'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span className="font-medium">Logout</span>
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
+  // Desktop sidebar
   return (
     <aside
       className={cn(

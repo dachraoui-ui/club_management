@@ -281,3 +281,28 @@
   opacity: 1;
   transform: none;
 }
+
+/* Mobile Responsive Utilities */
+@layer utilities {
+  .mobile-sidebar-overlay {
+    @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-sm;
+  }
+
+  .mobile-sidebar {
+    @apply fixed left-0 top-0 z-50 h-screen w-64 bg-sidebar transform transition-transform duration-300 ease-in-out;
+  }
+
+  .mobile-sidebar-hidden {
+    @apply -translate-x-full;
+  }
+
+  .mobile-sidebar-visible {
+    @apply translate-x-0;
+  }
+}
+
+/* Prevent body scroll when mobile menu is open */
+body.mobile-menu-open {
+  overflow: hidden;
+}
+

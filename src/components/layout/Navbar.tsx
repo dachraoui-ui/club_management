@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Search, User, LogOut, Settings } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +26,8 @@ import {
 
 interface NavbarProps {
   title: string;
+  onMenuClick?: () => void;
+  isMobile?: boolean;
 }
 
 // Search items for quick navigation
@@ -44,12 +46,12 @@ const searchItems = [
   { name: 'Settings', path: '/settings', category: 'Pages' },
 ];
 
-export function Navbar({ title }: NavbarProps) {
+export function Navbar({ title, onMenuClick, isMobile }: NavbarProps) {
   const { settings } = useSettings();
   const { firstName, lastName, avatar } = settings.profile;
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
-  
+
   // Get initials for avatar fallback
   const getInitials = () => {
     const firstInitial = firstName ? firstName.charAt(0).toUpperCase() : '';
@@ -64,29 +66,43 @@ export function Navbar({ title }: NavbarProps) {
     } catch (error) {
       console.error('Logout error:', error);
     }
-    
+
     // Clear all stored data
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('authToken');
     sessionStorage.clear();
-    
+
     // Clear browser history and prevent back navigation
     // Replace the current history entry with login page
     window.history.pushState(null, '', '/');
     window.history.pushState(null, '', '/');
     window.history.go(-1);
-    
+
     // Force navigation to login page (replace to clear history)
     window.location.replace('/');
   };
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 bg-card border-b border-border flex items-center justify-between px-6">
-        <h1 className="text-xl font-bold text-foreground">{title}</h1>
+      <header className="sticky top-0 z-30 h-14 md:h-16 bg-card border-b border-border flex items-center justify-between px-3 md:px-6">
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* Hamburger Menu - Mobile Only */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMenuClick}
+              className="mr-1"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          )}
+          <h1 className="text-lg md:text-xl font-bold text-foreground truncate">{title}</h1>
+        </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Search */}
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -99,9 +115,9 @@ export function Navbar({ title }: NavbarProps) {
           </div>
 
           {/* Mobile Search Button */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="md:hidden"
             onClick={() => setSearchOpen(true)}
           >
@@ -157,14 +173,14 @@ export function Navbar({ title }: NavbarProps) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => navigate('/settings?tab=profile')}
                 className="cursor-pointer"
               >
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => navigate('/settings?tab=security')}
                 className="cursor-pointer"
               >
@@ -172,7 +188,7 @@ export function Navbar({ title }: NavbarProps) {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleLogout}
                 className="cursor-pointer text-destructive focus:text-destructive"
               >
